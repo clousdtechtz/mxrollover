@@ -1,232 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const API_URL = 'https://mxrollover-backend.onrender.com'; // Your backend URL
+import './index.css'; // Adjust if using App.css based on your project configuration
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Profile & Theme Customization States
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [showSettingsAccordion, setShowSettingsAccordion] = useState(false);
-  const [username, setUsername] = useState(() => localStorage.getItem('userProfileUsername') || 'Savings User');
-  const [theme, setTheme] = useState(() => localStorage.getItem('userProfileTheme') || 'default');
-  const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfileImage') || null);
-  const [bgImage, setBgImage] = useState(() => {
-    const active = localStorage.getItem('useCustomBgActive') === 'true';
-    return active ? localStorage.getItem('userProfileCustomBg') : null;
+  const [slips, setSlips] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [settleMessage, setSettleMessage] = useState('');
+
+  // Form State for creating a new tracker slip
+  const [formData, setFormData] = useState({
+    title: '',
+    target_goal: '',
+    initial_stake: '',
+    base_odds: '',
+    match_id: '',
+    prediction: 'Over 1.5'
   });
 
-  // Dashboard Dropdown Panels Toggles
-  const [openCreateBetslip, setOpenCreateBetslip] = useState(false);
-  const [openLiveScore, setOpenLiveScore] = useState(false);
-  const [openBetway, setOpenBetway] = useState(false);
+  // Your live backend service hosted on Render
+  const API_BASE_URL = 'https://mxrollover.onrender.com';
 
-  // Coupon Form States
-  const [baseStake, setBaseStake] = useState('1000');
-  const [kickOffTime, setKickOffTime] = useState('');
-  const [stagedMatches, setStagedMatches] = useState([]);
-  const [accumulatedOdds, setAccumulatedOdds] = useState(1.00);
-  
-  // Individual Match Row Builders
-  const [homeTeam, setHomeTeam] = useState('');
-  const [awayTeam, setAwayTeam] = useState('');
-  const [prediction, setPrediction] = useState('');
-  const [matchOdd, setMatchOdd] = useState('');
-
-  // Active runs fetched from database
-  const [rolloverRuns, setRolloverRuns] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Fetch slips from database
+  const fetchSlips = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/rollovers`);
+      const data = await res.json();
+      setSlips(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading slips:", err);
+    }
+  };
 
   useEffect(() => {
-    fetchData();
+    fetchSlips();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/rollovers`);
-      setRolloverRuns(res.data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Backend connection offline.", err);
-      setLoading(false);
-    }
+  // Handle Form Inputs
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAppendMatch = (e) => {
+  // Submit New Bet Slip
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
-      alert("Please complete the match properties row first.");
-      return;
-    }
-    const currentOddsValue = parseFloat(matchOdd);
-    const textSelection = `${homeTeam} vs ${awayTeam} (${prediction} @${currentOddsValue})`;
-    setStagedMatches([...stagedMatches, textSelection]);
-    setAccumulatedOdds(prev => prev * currentOddsValue);
-    setHomeTeam(''); setAwayTeam(''); setPrediction(''); setMatchOdd('');
-  };
-
-  const handleGenerateActiveSlip = async (e) => {
-    e.preventDefault();
-    if (stagedMatches.length === 0) {
-      alert("Add matches using the '+' button first.");
-      return;
-    }
-    const d = new Date();
-    const currentChallengeDate = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
     try {
-      await axios.post(`${API_URL}/api/rollovers`, {
-        title: `${currentChallengeDate} Run`,
-        target_goal: "1M Goal",
-        initial_stake: parseFloat(baseStake) || 1000,
-        base_odds: parseFloat(accumulatedOdds.toFixed(2))
+      const res = await fetch(`${API_BASE_URL}/api/rollovers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
-      setStagedMatches([]); setAccumulatedOdds(1.00); setKickOffTime('');
-      fetchData();
-      setActiveTab('goal');
-      alert(`Slip created successfully!`);
+      if (res.ok) {
+        setFormData({ title: '', target_goal: '', initial_stake: '', base_odds: '', match_id: '', prediction: 'Over 1.5' });
+        fetchSlips();
+      }
     } catch (err) {
-      alert("Database error saving this slip.");
+      console.error("Error creating slip:", err);
+    }
+  };
+
+  // Trigger Backend API Automation to Check Scores
+  const handleSettleBets = async () => {
+    setLoading(true);
+    setSettleMessage('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settle-bets`, { method: 'POST' });
+      const data = await res.json();
+      setSettleMessage(data.message || 'Settlement processed successfully.');
+      fetchSlips(); // Refresh UI list with updated win/loss states
+    } catch (err) {
+      setSettleMessage('Failed to connect to automation server.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className={`theme-container theme-${theme}`} style={{ backgroundImage: bgImage ? `url(${bgImage})` : 'none' }}>
-      <div className="app-wrapper">
-        
-        {/* HEADER BLOCK */}
-        <header onClick={() => setShowProfileDropdown(false)}>
-          <div className="header-content">
-            <div className="header-left">
-              <h1><i className="fa-regular fa-circle-dot"></i> 𝐃𝐫𝐞𝐚𝐦𝐬 𝐜𝐨𝐦𝐞 𝐭𝐫𝐮𝐞</h1>
-              <p style={{ marginTop: '5px', color: 'blue', fontSize: '0.9rem' }}>✦ 𝐹𝑜𝑐𝑢𝑠 𝑜𝑛 𝑦𝑜𝑢𝑟 𝑑𝑟𝑒𝑎𝑚 𝑛𝑒𝑣𝑒𝑟 𝑔𝑖𝑣𝑒 𝑢𝑝. ✧</p>
-            </div>
+    <div className="app-container">
+      {/* HEADER CONTROLS */}
+      <header className="app-header">
+        <h1>MXROLLOVER Tracker</h1>
+        <div className="header-actions">
+          <button 
+            className="api-settle-btn" 
+            onClick={handleSettleBets} 
+            disabled={loading}
+          >
+            {loading ? 'Checking Live Scores...' : '🔄 Settle Bets via API'}
+          </button>
+          
+          <select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} className="nav-dropdown">
+            <option value="dashboard">📊 Dashboard View</option>
+            <option value="flashscore">⚽ Open Flashscore</option>
+            <option value="betway">🎰 Open Betway Tz</option>
+          </select>
+        </div>
+      </header>
+
+      {settleMessage && (
+        <div className="status-banner">
+          <p>{settleMessage}</p>
+          <button onClick={() => setSettleMessage('')}>×</button>
+        </div>
+      )}
+
+      {/* RENDER ACTIVE TAB VIEW */}
+      <main className="content-area">
+        {activeTab === 'dashboard' && (
+          <div className="dashboard-grid">
             
-            <div className="header-right">
-              <div className="profile-dropdown">
-                <button className="profile-btn" onClick={(e) => { e.stopPropagation(); setShowProfileDropdown(!showProfileDropdown); }}>
-                  <div id="profile-icon" style={{ backgroundImage: profilePic ? `url(${profilePic})` : 'none', backgroundSize: 'cover' }}>
-                    {!profilePic && <i className="fas fa-user"></i>}
+            {/* Left Side: Create Bet Entry */}
+            <section className="form-card">
+              <h2>Create New Entry</h2>
+              <form onSubmit={handleFormSubmit}>
+                <div className="input-group">
+                  <label>Title / Identifier</label>
+                  <input type="text" name="title" value={formData.title} onChange={handleInputChange} placeholder="e.g., Day 1 - Game 1" required />
+                </div>
+                <div className="input-row">
+                  <div className="input-group">
+                    <label>Target Goal ($)</label>
+                    <input type="number" step="0.01" name="target_goal" value={formData.target_goal} onChange={handleInputChange} required />
                   </div>
-                </button>
-                {showProfileDropdown && (
-                  <div className="dropdown-content show" onClick={(e) => e.stopPropagation()}>
-                    <div className="dropdown-header">
-                      <div id="dropdown-profile-pic" style={{ backgroundImage: profilePic ? `url(${profilePic})` : 'none', backgroundSize: 'cover' }}>
-                        {!profilePic && <i className="fas fa-user"></i>}
+                  <div className="input-group">
+                    <label>Stake ($)</label>
+                    <input type="number" step="0.01" name="initial_stake" value={formData.initial_stake} onChange={handleInputChange} required />
+                  </div>
+                </div>
+                <div className="input-row">
+                  <div className="input-group">
+                    <label>Base Odds</label>
+                    <input type="number" step="0.01" name="base_odds" value={formData.base_odds} onChange={handleInputChange} required />
+                  </div>
+                  <div className="input-group">
+                    <label>Prediction Type</label>
+                    <select name="prediction" value={formData.prediction} onChange={handleInputChange}>
+                      <option value="Over 1.5">Over 1.5 Goals</option>
+                      <option value="Home Win">Home Win (1)</option>
+                      <option value="Away Win">Away Win (2)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>RapidAPI Match ID (Optional Automation)</label>
+                  <input type="text" name="match_id" value={formData.match_id} onChange={handleInputChange} placeholder="e.g., 12389401" />
+                  <small>Leave blank if you want to track status manually.</small>
+                </div>
+                <button type="submit" className="submit-btn">Save to Tracker</button>
+              </form>
+            </section>
+
+            {/* Right Side: Roll List */}
+            <section className="list-card">
+              <h2>Active & Completed Slips</h2>
+              <div className="slips-container">
+                {slips.length === 0 ? (
+                  <p className="empty-msg">No entries saved yet.</p>
+                ) : (
+                  slips.map((slip) => (
+                    <div key={slip.id} className={`slip-item ${slip.status}`}>
+                      <div className="slip-info">
+                        <h3>{slip.title}</h3>
+                        <p>Stake: <strong>${slip.initial_stake}</strong> @ {slip.base_odds} odds</p>
+                        <p>Target: <strong>${slip.target_goal}</strong> | Rule: {slip.prediction}</p>
+                        {slip.match_id && <span className="badge-id">API ID: {slip.match_id}</span>}
                       </div>
-                      <div><strong>{username}</strong></div>
+                      <div className="slip-status">
+                        {slip.status === 'won' && <span className="icon-won">✅ Won</span>}
+                        {slip.status === 'lost' && <span className="icon-lost">❌ Lost</span>}
+                        {slip.status === 'pending' && <span className="icon-pending">⏳ Pending</span>}
+                      </div>
                     </div>
-                    <div className="dropdown-divider"></div>
-                    <a href="#dashboard" onClick={() => { setActiveTab('dashboard'); setShowProfileDropdown(false); }}><i className="fas fa-tachometer-alt"></i> Dashboard</a>
-                    <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}><i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets</a>
-                    <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}><i className="fas fa-history"></i> My bets</a>
-                  </div>
+                  ))
                 )}
               </div>
+            </section>
+
+          </div>
+        )}
+
+        {/* Embedded External Views */}
+        {activeTab === 'flashscore' && (
+          <div className="iframe-container">
+            <iframe src="https://flashscore.mobi/" title="Flashscore Live" className="embedded-frame" />
+          </div>
+        )}
+
+        {activeTab === 'betway' && (
+          <div className="iframe-container fallback-view">
+            <div className="iframe-fallback-card">
+              <h3>Betway Tanzania</h3>
+              <p>Due to safety precautions, Betway restricts embedding interfaces directly.</p>
+              <a href="https://en.betway.co.tz/" target="_blank" rel="noopener noreferrer" className="external-link-btn">
+                Launch Betway Tanzania 🚀
+              </a>
             </div>
           </div>
-          
-          <nav>
-            <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><i className="fas fa-home"></i> Dashboard</button>
-            <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}><i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets</button>
-            <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}><i className="fa-solid fa-clock-rotate-left"></i> My bets</button>
-          </nav>
-        </header>
-
-        {/* MAIN BODY LAYOUT PANEL */}
-        <main className="content-container">
-          
-          {/* TAB 1: DASHBOARD VIEW */}
-          {activeTab === 'dashboard' && (
-            <section className="page-view active">
-              <h2 style={{ marginBottom: '20px', color: '#1e293b' }}>Dashboard Management</h2>
-              
-              {/* DROPDOWN CARD 1: CREATE BETSLIP */}
-              <div className={`history-dropdown-card ${openCreateBetslip ? 'open' : ''}`}>
-                <div className="history-header-toggle" onClick={() => setOpenCreateBetslip(!openCreateBetslip)} style={{ background: '#f1f5f9' }}>
-                  <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-square-plus" style={{ color: '#3498db', marginRight: '8px' }}></i> Create Betslip Panel
-                  </p>
-                  <i className="fas fa-chevron-down toggle-arrow"></i>
-                </div>
-                <div className="history-content-collapsible" style={{ padding: '15px' }}>
-                  <form onSubmit={handleGenerateActiveSlip}>
-                    <div className="form-row-base">
-                      <div className="input-group"><label>Base Stake</label><input type="number" value={baseStake} onChange={(e) => setBaseStake(e.target.value)} required /></div>
-                      <div className="input-group"><label>Total Odds</label><input type="number" value={accumulatedOdds.toFixed(2)} readOnly style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold' }} /></div>
-                      <div className="input-group"><label>Kick-off</label><input type="time" value={kickOffTime} onChange={(e) => setKickOffTime(e.target.value)} /></div>
-                    </div>
-                    <div className="added-teams-summary">{stagedMatches.length === 0 ? "Staging coupon matches empty. Use fields below." : stagedMatches.join(' | ')}</div>
-                    <div className="accumulator-input-row">
-                      <input type="text" placeholder="Home" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} />
-                      <span className="vs-text">vs</span>
-                      <input type="text" placeholder="Away" value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} />
-                      <input type="text" placeholder="Bet" style={{ width: '90px' }} value={prediction} onChange={(e) => setPrediction(e.target.value)} />
-                      <input type="number" step="0.01" placeholder="Odds" style={{ width: '60px' }} value={matchOdd} onChange={(e) => setMatchOdd(e.target.value)} />
-                      <button type="button" onClick={handleAppendMatch} className="append-plus-btn"><i className="fa-solid fa-plus"></i></button>
-                    </div>
-                    <button type="submit" className="create-slip-btn">Generate Active Slip</button>
-                  </form>
-                </div>
-              </div>
-
-              {/* DROPDOWN CARD 2: FLASHSCORE IFRAME */}
-              <div className={`history-dropdown-card ${openLiveScore ? 'open' : ''}`} style={{ marginTop: '15px' }}>
-                <div className="history-header-toggle" onClick={() => setOpenLiveScore(!openLiveScore)} style={{ background: '#f1f5f9' }}>
-                  <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-clock" style={{ color: '#e21b26', marginRight: '8px' }}></i> Flashscore View Panel
-                  </p>
-                  <i className="fas fa-chevron-down toggle-arrow"></i>
-                </div>
-                <div className="history-content-collapsible" style={{ padding: '10px' }}>
-                  <div className="iframe-display-container">
-                    <iframe src="https://www.flashscore.mobi/" title="Flashscore Live Portal"></iframe>
-                  </div>
-                </div>
-              </div>
-
-              {/* DROPDOWN CARD 3: BETWAY IFRAME */}
-              <div className={`history-dropdown-card ${openBetway ? 'open' : ''}`} style={{ marginTop: '15px' }}>
-                <div className="history-header-toggle" onClick={() => setOpenBetway(!openBetway)} style={{ background: '#f1f5f9' }}>
-                  <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-bolt" style={{ color: '#8dc63f', marginRight: '8px' }}></i> Betway TZ View Panel
-                  </p>
-                  <i className="fas fa-chevron-down toggle-arrow"></i>
-                </div>
-                <div className="history-content-collapsible" style={{ padding: '10px' }}>
-                  <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                    <a href="https://en.betway.co.tz/" target="_blank" rel="noreferrer" className="settle-action-btn" style={{ textDecoration: 'none', display: 'inline-block', backgroundColor: '#000' }}>
-                      👉 Open Betway App/Site directly
-                    </a>
-                  </div>
-                  <div className="iframe-display-container">
-                    <iframe src="https://en.betway.co.tz/" title="Betway Frame Integration"></iframe>
-                  </div>
-                </div>
-              </div>
-
-            </section>
-          )}
-
-          {/* TAB 2: ACTIVE BETS */}
-          {activeTab === 'goal' && (
-            <section className="page-view active">
-              <h2>Active Bets</h2>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px' }}>No runs currently staged.</p>
-            </section>
-          )}
-
-          {/* TAB 3: MY BETS */}
-          {activeTab === 'transactions' && (
-            <section className="page-view active">
-              <h2>Bets History</h2>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px' }}>No records logged.</p>
-            </section>
-          )}
-
-        </main>
-      </div>
+        )}
+      </main>
     </div>
   );
 }
