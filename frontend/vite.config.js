@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/mxrollover/', // Must match your repository name exactly (case-sensitive)
+  base: '/mxrollover/', // This guarantees CSS links resolve perfectly on GitHub Pages
 })
