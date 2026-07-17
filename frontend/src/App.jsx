@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = 'https://mxrollover-backend.onrender.com'; // Change this to match your backend
+const API_URL = 'https://mxrollover-backend.onrender.com'; // Your backend URL
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,10 +17,10 @@ function App() {
     return active ? localStorage.getItem('userProfileCustomBg') : null;
   });
 
-  // NEW: Dashboard Dropdown Panels Toggles
+  // Dashboard Dropdown Panels Toggles
   const [openCreateBetslip, setOpenCreateBetslip] = useState(false);
   const [openLiveScore, setOpenLiveScore] = useState(false);
-  const [openBetPawa, setOpenBetPawa] = useState(false);
+  const [openBetway, setOpenBetway] = useState(false);
 
   // Coupon Form States
   const [baseStake, setBaseStake] = useState('1000');
@@ -171,38 +171,37 @@ function App() {
                 </div>
               </div>
 
-              {/* DROPDOWN CARD 2: LIVESCORE IFRAME */}
+              {/* DROPDOWN CARD 2: FLASHSCORE IFRAME */}
               <div className={`history-dropdown-card ${openLiveScore ? 'open' : ''}`} style={{ marginTop: '15px' }}>
-                <div className="history-header-toggle" onClick={() => setLiveScore(!openLiveScore)} style={{ background: '#f1f5f9' }}>
+                <div className="history-header-toggle" onClick={() => setOpenLiveScore(!openLiveScore)} style={{ background: '#f1f5f9' }}>
                   <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-clock" style={{ color: '#e21b26', marginRight: '8px' }}></i> LiveScore View Panel
+                    <i className="fa-solid fa-clock" style={{ color: '#e21b26', marginRight: '8px' }}></i> Flashscore View Panel
                   </p>
                   <i className="fas fa-chevron-down toggle-arrow"></i>
                 </div>
                 <div className="history-content-collapsible" style={{ padding: '10px' }}>
                   <div className="iframe-display-container">
-                    <iframe src="https://www.livescore.com/" title="LiveScore Portal"></iframe>
+                    <iframe src="https://www.flashscore.mobi/" title="Flashscore Live Portal"></iframe>
                   </div>
                 </div>
               </div>
 
-              {/* DROPDOWN CARD 3: BETPAWA PROXY WRAPPED IFRAME */}
-              <div className={`history-dropdown-card ${openBetPawa ? 'open' : ''}`} style={{ marginTop: '15px' }}>
-                <div className="history-header-toggle" onClick={() => setOpenBetPawa(!openBetPawa)} style={{ background: '#f1f5f9' }}>
+              {/* DROPDOWN CARD 3: BETWAY IFRAME */}
+              <div className={`history-dropdown-card ${openBetway ? 'open' : ''}`} style={{ marginTop: '15px' }}>
+                <div className="history-header-toggle" onClick={() => setOpenBetway(!openBetway)} style={{ background: '#f1f5f9' }}>
                   <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-gamepad" style={{ color: '#8dc63f', marginRight: '8px' }}></i> betPawa TZ View Panel
+                    <i className="fa-solid fa-bolt" style={{ color: '#8dc63f', marginRight: '8px' }}></i> Betway TZ View Panel
                   </p>
                   <i className="fas fa-chevron-down toggle-arrow"></i>
                 </div>
                 <div className="history-content-collapsible" style={{ padding: '10px' }}>
                   <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                    <a href="https://www.betpawa.co.tz/" target="_blank" rel="noreferrer" className="settle-action-btn" style={{ textDecoration: 'none', display: 'inline-block' }}>
-                      👉 Click here if load fails (Open betPawa App directly)
+                    <a href="https://en.betway.co.tz/" target="_blank" rel="noreferrer" className="settle-action-btn" style={{ textDecoration: 'none', display: 'inline-block', backgroundColor: '#000' }}>
+                      👉 Open Betway App/Site directly
                     </a>
                   </div>
                   <div className="iframe-display-container">
-                    {/* Cross-origin proxy workaround frame link to bypass strict connection blocks */}
-                    <iframe src="https://www.betpawa.co.tz/" title="betPawa Frame Integration" allow="clipboard-write"></iframe>
+                    <iframe src="https://en.betway.co.tz/" title="Betway Frame Integration"></iframe>
                   </div>
                 </div>
               </div>
