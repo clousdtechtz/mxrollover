@@ -1,471 +1,640 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+/* frontend/src/App.css */
 
-// Updated API URL for production deployment
-const API_URL = 'https://mxrollover.onrender.com'; 
-
-function App() {
-  // Navigation & Tab Switch State
-  const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Customization & Settings States (rebuilding your localStorage caching logic)
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [showSettingsAccordion, setShowSettingsAccordion] = useState(false);
-  const [username, setUsername] = useState(() => localStorage.getItem('userProfileUsername') || 'Savings User');
-  const [theme, setTheme] = useState(() => localStorage.getItem('userProfileTheme') || 'default');
-  const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfileImage') || null);
-  const [bgImage, setBgImage] = useState(() => {
-    const active = localStorage.getItem('useCustomBgActive') === 'true';
-    return active ? localStorage.getItem('userProfileCustomBg') : null;
-  });
-
-  // Coupon Builder Form States
-  const [baseStake, setBaseStake] = useState('1000');
-  const [kickOffTime, setKickOffTime] = useState('');
-  const [stagedMatches, setStagedMatches] = useState([]);
-  const [accumulatedOdds, setAccumulatedOdds] = useState(1.00);
-  
-  // Individual Accumulator Selection Builders
-  const [homeTeam, setHomeTeam] = useState('');
-  const [awayTeam, setAwayTeam] = useState('');
-  const [prediction, setPrediction] = useState('');
-  const [matchOdd, setMatchOdd] = useState('');
-
-  // Active runs fetched from database
-  const [rolloverRuns, setRolloverRuns] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load database entries on mount
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/rollovers`);
-      setRolloverRuns(res.data);
-      
-      // Automatic Rollover Stake Calculation:
-      if (res.data.length > 0) {
-        const lastRun = res.data[0];
-        const wonSteps = lastRun.steps ? lastRun.steps.filter(s => s.status === 'win') : [];
-        if (wonSteps.length > 0) {
-          const lastWonPayout = Math.floor(wonSteps[wonSteps.length - 1].win_amount);
-          setBaseStake(lastWonPayout.toString());
-        }
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error("Backend offline. Connect to Render server.", err);
-      setLoading(false);
-    }
-  };
-
-  // Sync profile customizations back to localStorage on change
-  const handleUsernameChange = (e) => {
-    const val = e.target.value;
-    setUsername(val);
-    localStorage.setItem('userProfileUsername', val);
-  };
-
-  const handleThemeChange = (e) => {
-    const selectedTheme = e.target.value;
-    setTheme(selectedTheme);
-    setBgImage(null); // Clear custom background so solid color theme displays
-    localStorage.setItem('userProfileTheme', selectedTheme);
-    localStorage.setItem('useCustomBgActive', 'false');
-  };
-
-  const handleProfilePicChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePic(reader.result);
-        localStorage.setItem('userProfileImage', reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleBgChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBgImage(reader.result);
-        localStorage.setItem('userProfileCustomBg', reader.result);
-        localStorage.setItem('useCustomBgActive', 'true');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Accumulator Appender logic mirroring your original arrays
-  const handleAppendMatch = (e) => {
-    e.preventDefault();
-    if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
-      alert("Please fill all single row match properties (Home, Away, Bet, Odds) before adding.");
-      return;
-    }
-
-    const currentOddsValue = parseFloat(matchOdd);
-    const textSelection = `${homeTeam} vs ${awayTeam} (${prediction} @${currentOddsValue})`;
-    
-    setStagedMatches([...stagedMatches, textSelection]);
-    
-    // Dynamic odds multiplication formula
-    setAccumulatedOdds(prev => prev * currentOddsValue);
-
-    // Reset inputs
-    setHomeTeam('');
-    setAwayTeam('');
-    setPrediction('');
-    setMatchOdd('');
-  };
-
-  // Submit staged coupon to MySQL Database
-  const handleGenerateActiveSlip = async (e) => {
-    e.preventDefault();
-    if (stagedMatches.length === 0) {
-      alert("Please add at least one match to your coupon using the '+' button first.");
-      return;
-    }
-
-    const d = new Date();
-    const currentChallengeDate = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-    const finalStake = parseFloat(baseStake) || 1000;
-
-    try {
-      await axios.post(`${API_URL}/api/rollovers`, {
-        title: `${currentChallengeDate} Run`,
-        target_goal: "1M Goal",
-        initial_stake: finalStake,
-        base_odds: parseFloat(accumulatedOdds.toFixed(2))
-      });
-      
-      // Reset staging builders
-      setStagedMatches([]);
-      setAccumulatedOdds(1.00);
-      setKickOffTime('');
-      fetchData();
-      
-      // Navigate to Active Bets
-      setActiveTab('goal');
-      alert(`Coupon initialized and added to database successfully!`);
-    } catch (err) {
-      alert("Failed to save the slip. Check database or Render API server.");
-    }
-  };
-
-  // Toggle dynamic day status changes (pending -> win -> loss -> pending)
-  const handleToggleBetStatus = async (betId, currentStatus) => {
-    let nextStatus = 'pending';
-    if (currentStatus === 'pending') nextStatus = 'win';
-    else if (currentStatus === 'win') nextStatus = 'loss';
-
-    try {
-      await axios.put(`${API_URL}/api/bets/${betId}`, { status: nextStatus });
-      fetchData(); // Trigger fresh database sync
-    } catch (err) {
-      console.error("Status update error", err);
-    }
-  };
-
-  // Close profile menu if user clicks outside
-  useEffect(() => {
-    const handleOutsideClick = () => setShowProfileDropdown(false);
-    window.addEventListener('click', handleOutsideClick);
-    return () => window.removeEventListener('click', handleOutsideClick);
-  }, []);
-
-  return (
-    <div 
-      className={`theme-container theme-${theme}`} 
-      style={{ backgroundImage: bgImage ? `url(${bgImage})` : 'none' }}
-    >
-      <div className="app-wrapper">
-        
-        {/* HEADER BLOCK */}
-        <header onClick={(e) => e.stopPropagation()}>
-          <div className="header-content">
-            {/* Left Branding */}
-            <div className="header-left">
-              <h1>
-                <i className="fa-regular fa-circle-dot"></i> 
-                𝐃𝐫𝐞𝐚𝐦𝐬 𝐜𝐨𝐦𝐞 𝐭𝐫𝐮𝐞
-              </h1>
-              <p style={{ marginTop: '5px', color: 'blue', opacity: 1, fontSize: '0.9rem' }}>
-                ✦ 𝐹𝑜𝑐𝑢𝑠 𝑜𝑛 𝑦𝑜𝑢𝑟 𝑑𝑟𝑒𝑎𝑚 𝑛𝑒𝑣𝑒𝑟 𝑔𝑖𝑣𝑒 𝑢𝑝. ✧
-              </p>
-            </div>
-            
-            {/* Profile Dropdown Button */}
-            <div className="header-right">
-              <div className="profile-dropdown">
-                <button 
-                  className="profile-btn" 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setShowProfileDropdown(!showProfileDropdown); 
-                  }}
-                >
-                  <div id="profile-icon" style={{ backgroundImage: profilePic ? `url(${profilePic})` : 'none', backgroundSize: 'cover' }}>
-                    {!profilePic && <i className="fas fa-user"></i>}
-                  </div>
-                </button>
-                
-                {/* Dropdown Menu Panel */}
-                {showProfileDropdown && (
-                  <div className="dropdown-content show" onClick={(e) => e.stopPropagation()}>
-                    <div className="dropdown-header">
-                      <div 
-                        id="dropdown-profile-pic"
-                        onClick={() => document.getElementById('profile-upload-input').click()}
-                        style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden', backgroundImage: profilePic ? `url(${profilePic})` : 'none', backgroundSize: 'cover' }}
-                      >
-                        {!profilePic && <i className="fas fa-user" id="avatar-icon"></i>}
-                        <div className="upload-overlay">
-                          <i className="fas fa-camera" style={{ fontSize: '0.75rem', color: 'white' }}></i>
-                        </div>
-                      </div>
-                      <input type="file" id="profile-upload-input" accept="image/*" style={{ display: 'none' }} onChange={handleProfilePicChange} />
-                      <div>
-                        <strong id="display-username">{username}</strong>
-                        <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Member</div>
-                      </div>
-                    </div>
-                    
-                    <div className="dropdown-divider"></div>
-                    
-                    {/* Inner Dropdown Navigation Links */}
-                    <a href="#dashboard" onClick={() => { setActiveTab('dashboard'); setShowProfileDropdown(false); }}>
-                      <i className="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}>
-                      <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
-                    </a>
-                    <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
-                      <i className="fas fa-history"></i> My bets
-                    </a>
-
-                    <div className="dropdown-divider"></div>
-
-                    {/* COLLAPSIBLE SIDEBAR SETTINGS ACCORDION */}
-                    <div className={`settings-dropdown-accordion ${showSettingsAccordion ? 'open' : ''}`}>
-                      <div className="settings-accordion-header" onClick={() => setShowSettingsAccordion(!showSettingsAccordion)}>
-                        <span><i className="fa-solid fa-gear"></i> Settings</span>
-                        <i className="fas fa-chevron-down settings-arrow"></i>
-                      </div>
-                      
-                      {showSettingsAccordion && (
-                        <div className="settings-accordion-content">
-                          <div className="setting-item-row">
-                            <label>Username:</label>
-                            <input type="text" value={username} onChange={handleUsernameChange} />
-                          </div>
-
-                          <div className="setting-item-row">
-                            <label>Color Theme:</label>
-                            <select value={theme} onChange={handleThemeChange}>
-                              <option value="default">Default Orange</option>
-                              <option value="dark">Dark Theme</option>
-                              <option value="blue">Blue Sky</option>
-                              <option value="purple">Royal Purple</option>
-                              <option value="pink">Vibrant Pink</option>
-                              <option value="gray">Slate Gray</option>
-                            </select>
-                          </div>
-
-                          <div className="setting-item-row">
-                            <label>Wall Background:</label>
-                            <button type="button" className="bg-upload-trigger-btn" onClick={() => document.getElementById('bg-upload-input').click()}>
-                              <i className="fa-solid fa-image"></i> Import Image
-                            </button>
-                            <input type="file" id="bg-upload-input" accept="image/*" style={{ display: 'none' }} onChange={handleBgChange} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Main Navigation Tabs */}
-          <nav>
-            <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-              <i className="fas fa-home"></i> Dashboard
-            </button>
-            <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}>
-              <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
-            </button>
-            <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
-              <i className="fa-solid fa-clock-rotate-left"></i> My bets
-            </button>
-          </nav>
-        </header>
-
-        {/* MAIN BODY CONTENT SECTIONS */}
-        <main className="content-container">
-          
-          {/* TAB 1: Dashboard */}
-          {activeTab === 'dashboard' && (
-            <section id="dashboard-view" className="page-view active">
-              <h2 style={{ marginBottom: '15px', color: '#1e293b' }}>Dashboard</h2>
-              
-              <div className="creator-card">
-                <h3><i className="fa-solid fa-square-plus"></i> Create Betslip</h3>
-                <form onSubmit={handleGenerateActiveSlip}>
-                  <div className="form-row-base">
-                    <div className="input-group">
-                      <label>Base Stake</label>
-                      <input type="number" value={baseStake} onChange={(e) => setBaseStake(e.target.value)} placeholder="1000" required />
-                    </div>
-                    <div className="input-group">
-                      <label>Total Odds</label>
-                      <input type="number" value={accumulatedOdds.toFixed(2)} readOnly style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold', color: '#2563eb' }} />
-                    </div>
-                    <div className="input-group">
-                      <label>Kick-off</label>
-                      <input type="time" value={kickOffTime} onChange={(e) => setKickOffTime(e.target.value)} required />
-                    </div>
-                  </div>
-
-                  {/* Appended Coupon Summary */}
-                  <div id="added-matches-paragraph" className="added-teams-summary">
-                    {stagedMatches.length === 0 ? (
-                      "No matches staging inside this coupon yet. Append fields below."
-                    ) : (
-                      stagedMatches.join(' | ')
-                    )}
-                  </div>
-
-                  {/* Coupon Accumulator Match Appender */}
-                  <div className="accumulator-input-row">
-                    <input type="text" placeholder="Home Team" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} />
-                    <span className="vs-text">vs</span>
-                    <input type="text" placeholder="Away Team" value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} />
-                    <input type="text" placeholder="Bet (e.g. Over 1.5)" style={{ width: '110px' }} value={prediction} onChange={(e) => setPrediction(e.target.value)} />
-                    <input type="number" step="0.01" placeholder="Odds" style={{ width: '70px' }} value={matchOdd} onChange={(e) => setMatchOdd(e.target.value)} />
-                    <button type="button" onClick={handleAppendMatch} className="append-plus-btn">
-                      <i className="fa-solid fa-plus"></i>
-                    </button>
-                  </div>
-
-                  <button type="submit" className="create-slip-btn" style={{ marginTop: '10px' }}>Generate Active Slip</button>
-                </form>
-              </div>
-
-              {/* Settlement Interface */}
-              <div className="creator-card" style={{ marginTop: '20px' }}>
-                <h3><i className="fa-solid fa-gavel"></i> Open Slip Settlement</h3>
-                <div id="dashboard-active-settlement">
-                  {rolloverRuns.length === 0 ? (
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', textAlign: 'center', padding: '10px' }}>No open un-settled bets slips currently found.</p>
-                  ) : (
-                    rolloverRuns.slice(0, 1).map(run => (
-                      <div key={run.id} className="settlement-block">
-                        <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>Active Rollover Challenge</div>
-                        <div style={{ fontSize: '0.8rem', margin: '6px 0', color: '#475569', lineHeight: 1.3 }}>{run.title}</div>
-                        <button type="button" className="settle-action-btn" onClick={() => setActiveTab('goal')}>Settle Day Steps</button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* TAB 2: Active Bets */}
-          {activeTab === 'goal' && (
-            <section id="goal-view" className="page-view active">
-              <h2 style={{ marginBottom: '15px', color: '#333' }}>Active Bets</h2>
-              <div id="active-bets-target-list">
-                {loading ? (
-                  <p style={{ textAlign: 'center', color: '#64748b' }}>Syncing operations with MySQL server...</p>
-                ) : rolloverRuns.length === 0 ? (
-                  <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No current active operations running.</p>
-                ) : (
-                  rolloverRuns.map((run) => (
-                    <div className="history-dropdown-card open" key={run.id} style={{ borderLeft: '4px solid #00b0ff', marginBottom: '20px' }}>
-                      <div className="history-header-toggle">
-                        <p className="history-title-paragraph"><strong>Active Run:</strong> {run.title}</p>
-                      </div>
-                      <div className="history-content-collapsible" style={{ display: 'block', padding: '10px' }}>
-                        <div className="table-scroll-wrapper">
-                          <table className="history-data-table">
-                            <thead>
-                              <tr>
-                                <th>DAY</th>
-                                <th>STAKE</th>
-                                <th>ODD</th>
-                                <th>WIN</th>
-                                <th>STATUS</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {run.steps && run.steps.map((step) => (
-                                <tr key={step.id}>
-                                  <td>{step.day_number}</td>
-                                  <td>{parseFloat(step.stake).toLocaleString()}</td>
-                                  <td>{step.odds}</td>
-                                  <td>{parseFloat(step.win_amount).toLocaleString()}</td>
-                                  <td>
-                                    <button 
-                                      className={`btn ${step.status === 'win' ? 'btn-win' : step.status === 'loss' ? 'btn-loss' : 'btn-pending'}`}
-                                      onClick={() => handleToggleBetStatus(step.id, step.status)}
-                                      style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                                    >
-                                      {step.status === 'win' ? '✔' : step.status === 'loss' ? '✘' : 'pending'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* TAB 3: My Bets */}
-          {activeTab === 'transactions' && (
-            <section id="transactions-view" className="page-view active">
-              <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History</h2>
-              <div id="history-bets-target-list">
-                {rolloverRuns.length === 0 ? (
-                  <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No historical data records verified yet.</p>
-                ) : (
-                  rolloverRuns.map(run => {
-                    const settledSteps = run.steps ? run.steps.filter(s => s.status === 'win' || s.status === 'loss') : [];
-                    return (
-                      <div className="history-dropdown-card" key={run.id}>
-                        <div className="history-header-toggle" onClick={() => alert(`Active selections: ${run.title}`)}>
-                          <p className="history-title-paragraph">
-                            <strong>Challenge Run:</strong> {run.title} (Settled: {settledSteps.length} Days)
-                          </p>
-                          <span style={{ fontSize: '0.9rem', marginLeft: '6px', flexShrink: 0 }}>
-                            {settledSteps.some(s => s.status === 'loss') ? '❌' : '✅'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </section>
-          )}
-
-        </main>
-      </div>
-    </div>
-  );
+/* Core App Reset & Font Rules */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-export default App;
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+    transition: background-color 0.3s ease;
+}
+
+/* Base styling for theme wrappers */
+.theme-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    transition: background-color 0.3s ease;
+}
+
+/* Width constraint to align with your max-width rule */
+.app-wrapper {
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* SYSTEM COLOR THEMES CONFIGURATION VALUES */
+.theme-default { background-color: #ff9d2b; }
+.theme-dark { background-color: #1e293b; }
+.theme-blue { background-color: #0284c7; }
+.theme-purple { background-color: #7c3aed; }
+.theme-pink { background-color: #db2777; }
+.theme-gray { background-color: #4b5563; }
+
+/* HEADER BLOCK */
+header {
+    background: linear-gradient(135deg, #ffdc2b, #ff5f2b);
+    color: green;
+    padding: 20px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
+    width: 100%;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-bottom: 25px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: green;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Dropdown trigger icon styling wrapper */
+.profile-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-btn {
+    background-color: transparent;
+    border: none;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    overflow: hidden;
+}
+
+.profile-btn:hover {
+    transform: translateY(-2px);
+}
+
+#profile-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #3498db;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#profile-icon i {
+    font-size: 1.6rem;
+    color: white;
+}
+
+/* Dropdown popup component styling */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 62px;
+    background-color: white;
+    min-width: 270px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    z-index: 1000;
+    border: 1px solid #ddd;
+    overflow: hidden;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    gap: 12px;
+}
+
+#dropdown-profile-pic {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3498db;
+    border: 2px solid white;
+}
+
+#dropdown-profile-pic i {
+    font-size: 1.3rem;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #eee;
+}
+
+.dropdown-content a {
+    color: #333;
+    padding: 12px 18px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content a:hover {
+    background-color: #f8fbff;
+    color: #3498db;
+    padding-left: 22px;
+}
+
+.dropdown-content a i {
+    width: 20px;
+    text-align: center;
+    color: #3498db;
+    font-size: 1.05rem;
+}
+
+/* Nav Control Tabs Layout styling */
+nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.nav-btn {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 12px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.nav-btn.active {
+    background-color: white;
+    color: #ff6b6b;
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* DYNAMIC BLUE/GREEN LIVE PULSING ICON STYLES */
+.live-blue-dot {
+    color: #319b00 !important;
+    display: inline-block;
+    position: relative;
+    animation: bluePulse 1.4s infinite ease-in-out;
+}
+
+@keyframes bluePulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0,176,255,0.4)); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 8px rgba(0,176,255,0.9)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0,176,255,0.4)); }
+}
+
+/* PROFILE IMAGE SELECTION HOVER UI ELEMENTS */
+.upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#dropdown-profile-pic:hover .upload-overlay { opacity: 1; }
+
+/* COLLAPSIBLE ACCORDION SETTINGS DESIGN LAYER */
+.settings-dropdown-accordion {
+    background-color: #f8fafc;
+}
+
+.settings-accordion-header {
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.settings-accordion-header:hover {
+    background-color: #f1f5f9;
+}
+
+.settings-accordion-header i.fa-gear {
+    width: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 1.05rem;
+    margin-right: 12px;
+}
+
+.settings-arrow {
+    font-size: 0.8rem;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.settings-arrow.rotate {
+    transform: rotate(180deg);
+}
+
+.settings-accordion-content {
+    padding: 5px 18px 15px 18px;
+    border-top: 1px solid #e2e8f0;
+    background-color: #fff;
+}
+
+.setting-item-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.setting-item-row label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.setting-item-row input, .setting-item-row select {
+    padding: 8px;
+    font-size: 0.82rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    outline: none;
+    color: #334155;
+    background-color: #fff;
+    width: 100%;
+}
+
+.bg-upload-trigger-btn {
+    padding: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+}
+
+/* PAGE VIEW PANEL AND CONTENT APP WRAPPER */
+.content-container {
+    padding: 20px;
+    flex: 1;
+    width: 100%;
+}
+
+.page-view {
+    display: none;
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.page-view.active { 
+    display: block; 
+}
+
+/* COMPACT PARAGRAPH VIEWING STYLES FOR MOBILE AND ACCORDIONS */
+.history-dropdown-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.history-header-toggle {
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.history-title-paragraph {
+    font-size: 0.82rem !important;
+    color: #334155;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.toggle-arrow {
+    font-size: 0.8rem;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.history-dropdown-card.open .toggle-arrow { transform: rotate(180deg); }
+.history-content-collapsible { display: none; border-top: 1px solid #e2e8f0; background-color: white; }
+.history-dropdown-card.open .history-content-collapsible { display: block; }
+
+/* STABLE FIXED SHEET MATRIX SPREADSHEETS */
+.table-scroll-wrapper { 
+    width: 100%; 
+    overflow-x: auto; 
+}
+
+.history-data-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 0.85rem; 
+    text-align: center; 
+    table-layout: fixed; 
+}
+
+.history-data-table th, .history-data-table td { 
+    padding: 8px 4px; 
+    border: 1px solid #cbd5e1; 
+    word-break: break-all; 
+}
+
+.history-data-table th { 
+    background-color: #f1f5f9; 
+    color: #1e293b; 
+    font-weight: 700; 
+}
+
+.history-data-table tbody tr:nth-child(even) { 
+    background-color: #f8fafc; 
+}
+
+/* Column proportions to prevent right scrolling */
+.history-data-table th:nth-child(1), .history-data-table td:nth-child(1) { width: 12%; }
+.history-data-table th:nth-child(2), .history-data-table td:nth-child(2) { width: 25%; }
+.history-data-table th:nth-child(3), .history-data-table td:nth-child(3) { width: 15%; }
+.history-data-table th:nth-child(4), .history-data-table td:nth-child(4) { width: 28%; }
+.history-data-table th:nth-child(5), .history-data-table td:nth-child(5) { width: 20%; }
+
+/* BET STATUS BUTTON DESIGNS */
+.btn-win {
+    background-color: #2ecc71 !important;
+    color: white !important;
+}
+
+.btn-loss {
+    background-color: #e74c3c !important;
+    color: white !important;
+}
+
+.btn-pending {
+    background-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+/* BET CREATOR CARDS & INLINE BUILDER ELEMENTS */
+.creator-card { 
+    background-color: #f8fafc; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    padding: 15px; 
+}
+
+.creator-card h3 { 
+    font-size: 1rem; 
+    color: #1e293b; 
+    margin-bottom: 12px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+}
+
+.form-row-base { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 12px; 
+}
+
+.input-group { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px; 
+}
+
+.input-group label { 
+    font-size: 0.78rem; 
+    font-weight: 600; 
+    color: #475569; 
+}
+
+.input-group input { 
+    padding: 8px; 
+    border: 1px solid #cbd5e1; 
+    border-radius: 6px; 
+    font-size: 0.85rem; 
+    color: #0f172a; 
+    width: 100%; 
+}
+
+/* Accumulator Input Row - Inline Configuration */
+.accumulator-input-row { 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    background-color: white; 
+    padding: 8px; 
+    border: 1px solid #cbd5e1; 
+    border-radius: 6px; 
+    margin-bottom: 10px; 
+    flex-wrap: nowrap; 
+}
+
+.accumulator-input-row input { 
+    padding: 6px; 
+    font-size: 0.82rem; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 4px; 
+    min-width: 0; 
+    flex: 1; 
+}
+
+.vs-text { 
+    font-size: 0.75rem; 
+    font-weight: bold; 
+    color: #94a3b8; 
+    text-transform: uppercase; 
+}
+
+.append-plus-btn { 
+    background-color: #10b981; 
+    color: white; 
+    border: none; 
+    width: 32px; 
+    height: 32px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 0.9rem; 
+    flex-shrink: 0; 
+}
+
+.added-teams-summary { 
+    background-color: #fff; 
+    border: 1px dashed #cbd5e1; 
+    border-radius: 6px; 
+    padding: 8px 12px; 
+    font-size: 0.78rem; 
+    color: #475569; 
+    margin-bottom: 12px; 
+    line-height: 1.4; 
+    word-wrap: break-word; 
+}
+
+.create-slip-btn { 
+    width: 100%; 
+    background: linear-gradient(135deg, #3498db, #2980b9); 
+    color: white; 
+    border: none; 
+    padding: 10px; 
+    font-weight: 700; 
+    font-size: 0.9rem; 
+    border-radius: 6px; 
+    cursor: pointer; 
+}
+
+.settlement-block { 
+    background: white; 
+    border: 1px solid #cbd5e1; 
+    padding: 12px; 
+    border-radius: 8px; 
+    margin-top: 10px; 
+}
+
+.settle-action-btn { 
+    padding: 6px 12px; 
+    border: none; 
+    border-radius: 4px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    color: white; 
+    font-size: 0.8rem; 
+    background-color: #2563eb; 
+}
+
+/* RESPONSIVE MOBILE TIGHTENERS */
+@media (max-width: 768px) {
+    nav {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 15px;
+    }
+    
+    .nav-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 5px;
+        font-size: 0.85rem;
+    }
+    
+    h1 {
+        font-size: 1.6rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .form-row-base { flex-direction: column; gap: 10px; }
+}
+
+@media (max-width: 480px) {
+    .content-container { padding: 8px; }
+    .page-view { padding: 12px 8px; }
+    .accumulator-input-row { flex-wrap: wrap; gap: 4px; }
+    .accumulator-input-row input { flex: calc(50% - 15px); }
+    .accumulator-input-row input[id="match-pred"], .accumulator-input-row input[id="match-odd"] { flex: calc(50% - 22px); }
+    .vs-text { width: 10px; text-align: center; }
+    .history-title-paragraph { font-size: 0.76rem !important; }
+    .history-data-table { font-size: 0.75rem; }
+    .history-data-table th, .history-data-table td { padding: 6px 2px; }
+}
+
+/* Iframe view custom responsive containers */
+.iframe-display-container {
+    width: 100%;
+    height: 75vh;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.iframe-display-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
