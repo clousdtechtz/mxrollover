@@ -8,7 +8,7 @@ function App() {
   // Navigation & Tab Switch State
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Customization & Settings States (rebuilding your localStorage caching logic)
+  // Customization & Settings States
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSettingsAccordion, setShowSettingsAccordion] = useState(false);
   const [username, setUsername] = useState(() => localStorage.getItem('userProfileUsername') || 'Savings User');
@@ -18,6 +18,9 @@ function App() {
     const active = localStorage.getItem('useCustomBgActive') === 'true';
     return active ? localStorage.getItem('userProfileCustomBg') : null;
   });
+
+  // External Portal Dropdown State
+  const [portalDropdownOpen, setPortalDropdownOpen] = useState(false);
 
   // Coupon Builder Form States
   const [baseStake, setBaseStake] = useState('1000');
@@ -45,8 +48,6 @@ function App() {
       const res = await axios.get(`${API_URL}/api/rollovers`);
       setRolloverRuns(res.data);
       
-      // Automatic Rollover Stake Calculation:
-      // If the most recent active run has winning steps, grab the last won step payout
       if (res.data.length > 0) {
         const lastRun = res.data[0];
         const wonSteps = lastRun.steps ? lastRun.steps.filter(s => s.status === 'win') : [];
@@ -62,7 +63,6 @@ function App() {
     }
   };
 
-  // Sync profile customizations back to localStorage on change
   const handleUsernameChange = (e) => {
     const val = e.target.value;
     setUsername(val);
@@ -72,7 +72,7 @@ function App() {
   const handleThemeChange = (e) => {
     const selectedTheme = e.target.value;
     setTheme(selectedTheme);
-    setBgImage(null); // Clear custom background so solid color theme displays
+    setBgImage(null);
     localStorage.setItem('userProfileTheme', selectedTheme);
     localStorage.setItem('useCustomBgActive', 'false');
   };
@@ -102,7 +102,6 @@ function App() {
     }
   };
 
-  // Accumulator Appender logic mirroring your original arrays
   const handleAppendMatch = (e) => {
     e.preventDefault();
     if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
@@ -114,18 +113,14 @@ function App() {
     const textSelection = `${homeTeam} vs ${awayTeam} (${prediction} @${currentOddsValue})`;
     
     setStagedMatches([...stagedMatches, textSelection]);
-    
-    // Dynamic odds multiplication formula
     setAccumulatedOdds(prev => prev * currentOddsValue);
 
-    // Reset inputs
     setHomeTeam('');
     setAwayTeam('');
     setPrediction('');
     setMatchOdd('');
   };
 
-  // Submit staged coupon to MySQL Database
   const handleGenerateActiveSlip = async (e) => {
     e.preventDefault();
     if (stagedMatches.length === 0) {
@@ -145,13 +140,11 @@ function App() {
         base_odds: parseFloat(accumulatedOdds.toFixed(2))
       });
       
-      // Reset staging builders
       setStagedMatches([]);
       setAccumulatedOdds(1.00);
       setKickOffTime('');
       fetchData();
       
-      // Navigate to Active Bets
       setActiveTab('goal');
       alert(`Coupon initialized and added to database successfully!`);
     } catch (err) {
@@ -159,7 +152,6 @@ function App() {
     }
   };
 
-  // Toggle dynamic day status changes (pending -> win -> loss -> pending)
   const handleToggleBetStatus = async (betId, currentStatus) => {
     let nextStatus = 'pending';
     if (currentStatus === 'pending') nextStatus = 'win';
@@ -167,15 +159,23 @@ function App() {
 
     try {
       await axios.put(`${API_URL}/api/bets/${betId}`, { status: nextStatus });
-      fetchData(); // Trigger fresh database sync
+      fetchData();
     } catch (err) {
       console.error("Status update error", err);
     }
   };
 
-  // Close profile menu if user clicks outside
+  // Safe window explorer popups helper to bypass iframe blockages
+  const launchExternalPortal = (url) => {
+    setPortalDropdownOpen(false);
+    window.open(url, '_blank', 'width=450,height=750,resizable=yes,scrollbars=yes');
+  };
+
   useEffect(() => {
-    const handleOutsideClick = () => setShowProfileDropdown(false);
+    const handleOutsideClick = () => {
+      setShowProfileDropdown(false);
+      setPortalDropdownOpen(false);
+    };
     window.addEventListener('click', handleOutsideClick);
     return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
@@ -190,7 +190,6 @@ function App() {
         {/* HEADER BLOCK */}
         <header onClick={(e) => e.stopPropagation()}>
           <div className="header-content">
-            {/* Left Branding */}
             <div className="header-left">
               <h1>
                 <i className="fa-regular fa-circle-dot"></i> 
@@ -201,8 +200,33 @@ function App() {
               </p>
             </div>
             
-            {/* Profile Dropdown Button */}
-            <div className="header-right">
+            <div className="header-right" style={{ gap: '12px' }}>
+              {/* PLATFORMS POPUP DROPDOWN */}
+              <div className="profile-dropdown">
+                <button 
+                  className="nav-btn" 
+                  style={{ background: '#2563eb', borderColor: 'transparent', padding: '10px 16px' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPortalDropdownOpen(!portalDropdownOpen);
+                  }}
+                >
+                  <i className="fa-solid fa-layer-group"></i> Platforms <i className="fas fa-chevron-down" style={{ fontSize: '0.75rem' }}></i>
+                </button>
+                
+                {portalDropdownOpen && (
+                  <div className="dropdown-content show" style={{ top: '50px', minWidth: '200px' }} onClick={(e) => e.stopPropagation()}>
+                    <a href="#livescore" onClick={() => launchExternalPortal('https://www.livescore.com/')}>
+                      <i className="fa-solid fa-clock" style={{ color: '#e21b26' }}></i> LiveScore PopUp
+                    </a>
+                    <a href="#betpawa" onClick={() => launchExternalPortal('https://www.betpawa.co.tz/')}>
+                      <i className="fa-solid fa-gamepad" style={{ color: '#8dc63f' }}></i> betPawa TZ PopUp
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Dropdown Button */}
               <div className="profile-dropdown">
                 <button 
                   className="profile-btn" 
@@ -216,7 +240,6 @@ function App() {
                   </div>
                 </button>
                 
-                {/* Dropdown Menu Panel */}
                 {showProfileDropdown && (
                   <div className="dropdown-content show" onClick={(e) => e.stopPropagation()}>
                     <div className="dropdown-header">
@@ -239,7 +262,6 @@ function App() {
                     
                     <div className="dropdown-divider"></div>
                     
-                    {/* Inner Dropdown Navigation Links */}
                     <a href="#dashboard" onClick={() => { setActiveTab('dashboard'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-tachometer-alt"></i> Dashboard
                     </a>
@@ -249,13 +271,9 @@ function App() {
                     <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-history"></i> My bets
                     </a>
-                    <a href="#betpawa" onClick={() => { setActiveTab('betpawa'); setShowProfileDropdown(false); }}>
-                      <i className="fa-solid fa-gamepad"></i> betPawa
-                    </a>
 
                     <div className="dropdown-divider"></div>
 
-                    {/* COLLAPSIBLE SIDEBAR SETTINGS ACCORDION */}
                     <div className={`settings-dropdown-accordion ${showSettingsAccordion ? 'open' : ''}`}>
                       <div className="settings-accordion-header" onClick={() => setShowSettingsAccordion(!showSettingsAccordion)}>
                         <span><i className="fa-solid fa-gear"></i> Settings</span>
@@ -308,9 +326,6 @@ function App() {
             <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
               <i className="fa-solid fa-clock-rotate-left"></i> My bets
             </button>
-            <button className={`nav-btn ${activeTab === 'betpawa' ? 'active' : ''}`} onClick={() => setActiveTab('betpawa')}>
-              <i className="fa-solid fa-gamepad"></i> betPawa
-            </button>
           </nav>
         </header>
 
@@ -340,7 +355,6 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Appended Coupon Summary */}
                   <div id="added-matches-paragraph" className="added-teams-summary">
                     {stagedMatches.length === 0 ? (
                       "No matches staging inside this coupon yet. Append fields below."
@@ -349,7 +363,6 @@ function App() {
                     )}
                   </div>
 
-                  {/* Coupon Accumulator Match Appender */}
                   <div className="accumulator-input-row">
                     <input type="text" placeholder="Home Team" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} />
                     <span className="vs-text">vs</span>
@@ -365,7 +378,6 @@ function App() {
                 </form>
               </div>
 
-              {/* Settlement Interface */}
               <div className="creator-card" style={{ marginTop: '20px' }}>
                 <h3><i className="fa-solid fa-gavel"></i> Open Slip Settlement</h3>
                 <div id="dashboard-active-settlement">
@@ -441,7 +453,7 @@ function App() {
             </section>
           )}
 
-          {/* TAB 3: My Bets (History Archive) */}
+          {/* TAB 3: My Bets */}
           {activeTab === 'transactions' && (
             <section id="transactions-view" className="page-view active">
               <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History</h2>
@@ -465,20 +477,6 @@ function App() {
                     );
                   })
                 )}
-              </div>
-            </section>
-          )}
-
-          {/* NEW TAB 4: betPawa Live Panel Frame */}
-          {activeTab === 'betpawa' && (
-            <section id="betpawa-view" className="page-view active">
-              <h2 style={{ marginBottom: '15px', color: '#1e293b' }}>betPawa Dashboard</h2>
-              <div className="iframe-display-container">
-                <iframe 
-                  src="https://www.betpawa.co.tz/" 
-                  title="betPawa Platform Matrix"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                ></iframe>
               </div>
             </section>
           )}
