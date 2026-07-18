@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './App.css';
+import './index.css'; // Matches your folder setup
 
 const API_BASE_URL = "https://mxrollover.onrender.com/api";
 
