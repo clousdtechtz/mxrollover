@@ -2,14 +2,13 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const axios = require('axios');
-const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. Establish Secure MySQL Database Connection Pool
+// 1. Establish Secure MySQL Database Connection Pool without physical ca.pem file
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -17,8 +16,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'defaultdb',
   port: process.env.DB_PORT || 27609,
   ssl: {
-    rejectUnauthorized: true,
-    ca: fs.readFileSync('./ca.pem').toString(), // Required for Aiven SSL validation
+    rejectUnauthorized: false // Connect securely without demanding a local file match
   },
   waitForConnections: true,
   connectionLimit: 10,
@@ -32,7 +30,7 @@ const pool = mysql.createPool({
     console.log("🚀 Secure connection to Aiven MySQL established successfully!");
     connection.release();
   } catch (err) {
-    console.error("❌ Database connection failed. Verify SSL ca.pem path and credentials:", err.message);
+    console.error("❌ Database connection failed. Verify credentials:", err.message);
   }
 })();
 
@@ -98,7 +96,6 @@ app.put('/api/bets/:id', async (req, res) => {
 // 5. AUTOMATED LIVE SCORE SETTLEMENT (RAPIDAPI HUB)
 app.post('/api/settle-bets', async (req, res) => {
   try {
-    // 1. Grab active runs that have a valid automation match_id attached
     const [activeRuns] = await pool.query('SELECT * FROM rollovers WHERE match_id IS NOT NULL');
     
     if (activeRuns.length === 0) {
@@ -108,18 +105,16 @@ app.post('/api/settle-bets', async (req, res) => {
     let updatedCount = 0;
 
     for (let run of activeRuns) {
-      // Find the current pending step for this rollover run
       const [pendingSteps] = await pool.query(
         'SELECT * FROM bet_steps WHERE rollover_id = ? AND status = "pending" LIMIT 1', 
         [run.id]
       );
 
-      if (pendingSteps.length === 0) continue; // Skip if no steps are waiting for settlement
+      if (pendingSteps.length === 0) continue; 
       const currentStep = pendingSteps[0];
 
       console.log(`Checking match metrics for API ID: ${run.match_id}`);
 
-      // 2. Fetch match status from RapidAPI (API-Football)
       const options = {
         method: 'GET',
         url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures',
@@ -136,9 +131,8 @@ app.post('/api/settle-bets', async (req, res) => {
       if (!fixtureData || fixtureData.length === 0) continue;
 
       const fixture = fixtureData[0];
-      const matchStatus = fixture.fixture.status.short; // FT, HT, 1H, etc.
+      const matchStatus = fixture.fixture.status.short; 
       
-      // We only settle coupons if the match is officially finished (FT)
       if (matchStatus === 'FT') {
         const homeGoals = fixture.goals.home;
         const awayGoals = fixture.goals.away;
@@ -147,21 +141,18 @@ app.post('/api/settle-bets', async (req, res) => {
         let isWin = false;
         const rule = run.prediction;
 
-        // Evaluate rules
         if (rule === 'Over 1.5' && totalGoals > 1.5) isWin = true;
         if (rule === 'Home Win' && homeGoals > awayGoals) isWin = true;
         if (rule === 'Away Win' && awayGoals > homeGoals) isWin = true;
 
         const finalStatus = isWin ? 'win' : 'loss';
 
-        // 3. Update the step status in your database
         await pool.query('UPDATE bet_steps SET status = ? WHERE id = ?', [finalStatus, currentStep.id]);
         updatedCount++;
 
-        // 4. If it was a win, automatically cascade and create the row structure for the next day
         if (isWin) {
           const nextDay = currentStep.day_number + 1;
-          const nextStake = Math.floor(currentStep.win_amount); // Compound payout as next stake
+          const nextStake = Math.floor(currentStep.win_amount); 
           const nextWinAmount = nextStake * run.base_odds;
 
           await pool.query(
