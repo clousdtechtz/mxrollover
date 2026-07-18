@@ -510,7 +510,7 @@ function App() {
                         {/* If it's NOT clicked/expanded, only show simple Stake and Odds overview labels */}
                         {!isExpanded && (
                           <div style={{ padding: '0 12px 12px 12px', display: 'flex', gap: '20px', fontSize: '0.85rem', color: '#475569' }}>
-                            <span><strong>Stake:</strong> {parseFloat(run.initial_stake || 1000).toLocaleString()} TZS</span>
+                            <span>export <strong>Stake:</strong> {parseFloat(run.initial_stake || 1000).toLocaleString()} TZS</span>
                             <span><strong>Total Odds:</strong> @{parseFloat(run.base_odds || 1.00).toFixed(2)}</span>
                           </div>
                         )}
@@ -572,6 +572,15 @@ function App() {
                 ) : (
                   rolloverRuns.map(run => {
                     const settledSteps = run.steps ? run.steps.filter(s => s.status === 'win' || s.status === 'loss') : [];
+                    
+                    // Dynamically set correct icon mapping so pending games show an hourglass instead of checking green ticks
+                    let statusIcon = '⏳'; 
+                    if (settledSteps.some(s => s.status === 'loss')) {
+                      statusIcon = '❌';
+                    } else if (settledSteps.length > 0 && settledSteps.every(s => s.status === 'win')) {
+                      statusIcon = '✅';
+                    }
+
                     return (
                       <div className="history-dropdown-card" key={run.id}>
                         <div className="history-header-toggle" onClick={() => alert(`Staged Details: ${run.title}`)}>
@@ -579,7 +588,7 @@ function App() {
                             <strong>Challenge Run:</strong> {run.title} (Settled: {settledSteps.length} Days)
                           </p>
                           <span style={{ fontSize: '0.9rem', marginLeft: '6px', flexShrink: 0 }}>
-                            {settledSteps.some(s => s.status === 'loss') ? '❌' : '✅'}
+                            {statusIcon}
                           </span>
                         </div>
                       </div>
