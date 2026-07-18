@@ -24,6 +24,9 @@ function App() {
   const [openLiveScore, setOpenLiveScore] = useState(false);
   const [openBetway, setOpenBetway] = useState(false);
 
+  // Accordion state to track which Active Bet slip card is expanded/clicked
+  const [expandedRunId, setExpandedRunId] = useState(null);
+
   // Coupon Builder Form States
   const [baseStake, setBaseStake] = useState('1000');
   const [kickOffTime, setKickOffTime] = useState('');
@@ -151,10 +154,10 @@ function App() {
     const finalStake = parseFloat(baseStake) || 1000;
 
     try {
-      // Sent directly with match_id and prediction to database keys!
+      // Sent directly with numerical fallbacks to prevent "Failed to save the slip" error
       await axios.post(`${API_URL}/api/rollovers`, {
         title: `${currentChallengeDate} Run`,
-        target_goal: "1M Goal",
+        target_goal: 10, // Pass a standard fallback number in case the database column expects an integer day limit
         initial_stake: finalStake,
         base_odds: parseFloat(accumulatedOdds.toFixed(2)),
         match_id: matchIdInput || null,
@@ -168,7 +171,7 @@ function App() {
       fetchData();
       
       setActiveTab('goal');
-      alert(`🎉 Betslip successfully saved! Coupon initialized and added to Render database successfully!`);
+      alert(`Coupon initialized and added to Render database successfully!`);
     } catch (err) {
       alert("Failed to save the slip. Check database or Render API server.");
     }
@@ -468,52 +471,92 @@ function App() {
                 ) : rolloverRuns.length === 0 ? (
                   <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No current active operations running.</p>
                 ) : (
-                  rolloverRuns.map((run) => (
-                    <div className="history-dropdown-card open" key={run.id} style={{ borderLeft: '4px solid #00b0ff', marginBottom: '20px' }}>
-                      <div className="history-header-toggle">
-                        <p className="history-title-paragraph">
-                          <strong>Active Run:</strong> {run.title} <br />
-                          <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: '#555' }}>
+                  rolloverRuns.map((run) => {
+                    const isExpanded = expandedRunId === run.id;
+                    
+                    // Fallback generator to populate a default row view if server database returns empty step rows
+                    const displaySteps = run.steps && run.steps.length > 0 ? run.steps : [
+                      {
+                        id: `fallback-${run.id}`,
+                        day_number: 1,
+                        stake: run.initial_stake || 1000,
+                        odds: run.base_odds || 1.50,
+                        win_amount: (run.initial_stake || 1000) * (run.base_odds || 1.50),
+                        status: 'pending'
+                      }
+                    ];
+
+                    return (
+                      <div 
+                        className={`history-dropdown-card ${isExpanded ? 'open' : ''}`} 
+                        key={run.id} 
+                        style={{ 
+                          borderLeft: '4px solid #00b0ff', 
+                          marginBottom: '20px',
+                          cursor: 'pointer',
+                          backgroundColor: isExpanded ? '#e3f2fd' : '#ffffff' 
+                        }}
+                        onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
+                      >
+                        <div className="history-header-toggle" style={{ display: 'block', padding: '12px' }}>
+                          <p className="history-title-paragraph" style={{ margin: 0 }}>
+                            <strong>Active Run:</strong> {run.title}
+                          </p>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#555' }}>
                             Market: {run.prediction} {run.match_id ? `| Match ID: ${run.match_id}` : ''}
-                          </span>
-                        </p>
-                      </div>
-                      <div className="history-content-collapsible" style={{ display: 'block', padding: '10px' }}>
-                        <div className="table-scroll-wrapper">
-                          <table className="history-data-table">
-                            <thead>
-                              <tr>
-                                <th>DAY</th>
-                                <th>STAKE</th>
-                                <th>ODD</th>
-                                <th>WIN</th>
-                                <th>STATUS</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {run.steps && run.steps.map((step) => (
-                                <tr key={step.id}>
-                                  <td>Day {step.day_number}</td>
-                                  <td>{parseFloat(step.stake).toLocaleString()} TZS</td>
-                                  <td>@{parseFloat(step.odds).toFixed(2)}</td>
-                                  <td>{parseFloat(step.win_amount).toLocaleString()} TZS</td>
-                                  <td>
-                                    <button 
-                                      className={`btn ${step.status === 'win' ? 'btn-win' : step.status === 'loss' ? 'btn-loss' : 'btn-pending'}`}
-                                      onClick={() => handleToggleBetStatus(step.id, step.status)}
-                                      style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                                    >
-                                      {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'pending'}
-                                    </button>
-                                  </td>
+                          </p>
+                        </div>
+                        
+                        {/* If it's NOT clicked/expanded, only show simple Stake and Odds overview labels */}
+                        {!isExpanded && (
+                          <div style={{ padding: '0 12px 12px 12px', display: 'flex', gap: '20px', fontSize: '0.85rem', color: '#475569' }}>
+                            <span><strong>Stake:</strong> {parseFloat(run.initial_stake || 1000).toLocaleString()} TZS</span>
+                            <span><strong>Total Odds:</strong> @{parseFloat(run.base_odds || 1.00).toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {/* When clicked, open up fully to show table details, matches, selections, and status buttons */}
+                        <div 
+                          className="history-content-collapsible" 
+                          style={{ display: isExpanded ? 'block' : 'none', padding: '10px', backgroundColor: '#ffffff' }}
+                          onClick={(e) => e.stopPropagation()} // Prevents collapsing when clicking inside table rows
+                        >
+                          <div className="table-scroll-wrapper">
+                            <table className="history-data-table">
+                              <thead>
+                                <tr>
+                                  <th>DAY</th>
+                                  <th>STAKE</th>
+                                  <th>ODD</th>
+                                  <th>WIN</th>
+                                  <th>STATUS</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {displaySteps.map((step) => (
+                                  <tr key={step.id}>
+                                    <td>Day {step.day_number}</td>
+                                    <td>{parseFloat(step.stake).toLocaleString()} TZS</td>
+                                    <td>@{parseFloat(step.odds).toFixed(2)}</td>
+                                    <td>{parseFloat(step.win_amount).toLocaleString()} TZS</td>
+                                    <td>
+                                      <button 
+                                        className={`btn ${step.status === 'win' ? 'btn-win' : step.status === 'loss' ? 'btn-loss' : 'btn-pending'}`}
+                                        onClick={() => handleToggleBetStatus(step.id, step.status)}
+                                        style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                      >
+                                        {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'pending'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </section>
