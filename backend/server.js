@@ -8,17 +8,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. MySQL Connection Pool (Updated with specific Aiven SSL configurations & Port handling)
+// 1. MySQL Connection Pool configured for secure SSL (Required by Aiven)
 const db = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 17964, // Automatically grabs your 17964 port from environment variables
+  port: process.env.DB_PORT || 17964,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // Added this object so Aiven welcomes Render's secure connection requests
   ssl: {
     rejectUnauthorized: false
   }
@@ -55,10 +54,8 @@ app.post('/api/rollovers', async (req, res) => {
 });
 
 // 4. AUTOMATED API SETTLEMENT ROUTE
-// This looks up pending games and evaluates scores via free-api-live-football-data
 app.post('/api/settle-bets', async (req, res) => {
   try {
-    // Grab all bets that are still marked as pending
     const [pendingBets] = await db.query("SELECT * FROM rollovers WHERE status = 'pending'");
     
     if (pendingBets.length === 0) {
@@ -68,7 +65,6 @@ app.post('/api/settle-bets', async (req, res) => {
     let updatedCount = 0;
 
     for (const bet of pendingBets) {
-      // Check if a match ID is available for API evaluation
       if (!bet.match_id) continue; 
 
       const options = {
@@ -85,7 +81,6 @@ app.post('/api/settle-bets', async (req, res) => {
         const apiRes = await axios.request(options);
         const matchData = apiRes.data;
         
-        // Parse custom or standard structure properties from Sofascore proxy structure
         const statusType = matchData?.status?.type || matchData?.status; 
         
         if (statusType === 'finished' || statusType === 'Finished') {
@@ -95,11 +90,9 @@ app.post('/api/settle-bets', async (req, res) => {
           
           let finalStatus = 'pending';
 
-          // Sample Condition parsing: "Over 1.5"
           if (bet.prediction === 'Over 1.5') {
             finalStatus = totalGoals > 1.5 ? 'won' : 'lost';
           } 
-          // Sample Condition parsing: Straight Winner (Home/Away)
           else if (bet.prediction === 'Home Win') {
             finalStatus = homeScore > awayScore ? 'won' : 'lost';
           } else if (bet.prediction === 'Away Win') {
