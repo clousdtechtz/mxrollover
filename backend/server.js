@@ -1,122 +1,186 @@
 const express = require('express');
-const cors = require('cors');
 const mysql = require('mysql2/promise');
+const cors = require('cors');
 const axios = require('axios');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. MySQL Connection Pool configured for secure SSL (Required by Aiven)
-const db = mysql.createPool({
+// 1. Establish Secure MySQL Database Connection Pool
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 17964,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  database: process.env.DB_NAME || 'defaultdb',
+  port: process.env.DB_PORT || 27609,
+  ssl: {
+    rejectUnauthorized: true,
+    ca: fs.readFileSync('./ca.pem').toString(), // Required for Aiven SSL validation
+  },
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  queueLimit: 0
 });
 
-// Test DB Connection
-db.getConnection()
-  .then(conn => {
-    console.log("✅ MySQL Database connected successfully with secure SSL.");
-    conn.release();
-  })
-  .catch(err => console.error("❌ Database connection failed:", err));
+// Test connection on boot
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log("🚀 Secure connection to Aiven MySQL established successfully!");
+    connection.release();
+  } catch (err) {
+    console.error("❌ Database connection failed. Verify SSL ca.pem path and credentials:", err.message);
+  }
+})();
 
-// 2. FETCH ALL SLIPS
+// 2. FETCH ALL ROLLOVERS (With their nested tracking day steps)
 app.get('/api/rollovers', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM rollovers ORDER BY id DESC');
-    res.json(rows);
+    const [runs] = await pool.query('SELECT * FROM rollovers ORDER BY id DESC');
+    
+    // Fetch individual steps for each active run
+    for (let run of runs) {
+      const [steps] = await pool.query('SELECT * FROM bet_steps WHERE rollover_id = ? ORDER BY day_number ASC', [run.id]);
+      run.steps = steps;
+    }
+    
+    res.json(runs);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. CREATE NEW SLIP
+// 3. CREATE NEW SLIP AND INITIALIZE DAY 1 STEP
 app.post('/api/rollovers', async (req, res) => {
-  const { title, target_goal, initial_stake, base_odds } = req.body;
+  const { title, target_goal, initial_stake, base_odds, match_id, prediction } = req.body;
+  
   try {
-    const query = `INSERT INTO rollovers (title, target_goal, initial_stake, base_odds, status) VALUES (?, ?, ?, ?, 'pending')`;
-    const [result] = await db.query(query, [title, target_goal, initial_stake, base_odds]);
-    res.json({ success: true, insertId: result.insertId });
+    // Insert parent challenge run entry (including match_id and prediction)
+    const [result] = await pool.query(
+      'INSERT INTO rollovers (title, target_goal, initial_stake, base_odds, match_id, prediction) VALUES (?, ?, ?, ?, ?, ?)',
+      [title, target_goal, initial_stake, base_odds, match_id, prediction]
+    );
+    
+    const rolloverId = result.insertId;
+    const winAmount = initial_stake * base_odds;
+
+    // Automatically initialize Day 1 step row inside bet_steps
+    await pool.query(
+      'INSERT INTO bet_steps (rollover_id, day_number, stake, odds, win_amount, status) VALUES (?, 1, ?, ?, ?, "pending")',
+      [rolloverId, initial_stake, base_odds, winAmount]
+    );
+
+    res.status(201).json({ id: rolloverId, message: "Slip initialized with Day 1 setup!" });
   } catch (err) {
+    console.error("SQL Error during creation:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 4. AUTOMATED API SETTLEMENT ROUTE
+// 4. MANUAL OVERRIDE: TOGGLE INDIVIDUAL STEP STATUS
+app.put('/api/bets/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // 'pending', 'win', 'loss'
+
+  try {
+    await pool.query('UPDATE bet_steps SET status = ? WHERE id = ?', [status, id]);
+    res.json({ message: "Bet status updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. AUTOMATED LIVE SCORE SETTLEMENT (RAPIDAPI HUB)
 app.post('/api/settle-bets', async (req, res) => {
   try {
-    const [pendingBets] = await db.query("SELECT * FROM rollovers WHERE status = 'pending'");
+    // 1. Grab active runs that have a valid automation match_id attached
+    const [activeRuns] = await pool.query('SELECT * FROM rollovers WHERE match_id IS NOT NULL');
     
-    if (pendingBets.length === 0) {
-      return res.json({ message: "No pending bets to settle at this time." });
+    if (activeRuns.length === 0) {
+      return res.json({ message: "No active automation targets scheduled." });
     }
 
     let updatedCount = 0;
 
-    for (const bet of pendingBets) {
-      if (!bet.match_id) continue; 
+    for (let run of activeRuns) {
+      // Find the current pending step for this rollover run
+      const [pendingSteps] = await pool.query(
+        'SELECT * FROM bet_steps WHERE rollover_id = ? AND status = "pending" LIMIT 1', 
+        [run.id]
+      );
 
+      if (pendingSteps.length === 0) continue; // Skip if no steps are waiting for settlement
+      const currentStep = pendingSteps[0];
+
+      console.log(`Checking match metrics for API ID: ${run.match_id}`);
+
+      // 2. Fetch match status from RapidAPI (API-Football)
       const options = {
         method: 'GET',
-        url: 'https://free-api-live-football-data.p.rapidapi.com/football-match-info',
-        params: { id: bet.match_id },
+        url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures',
+        params: { id: run.match_id },
         headers: {
-          'x-rapidapi-host': 'free-api-live-football-data.p.rapidapi.com',
-          'x-rapidapi-key': process.env.RAPIDAPI_KEY
+          'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
         }
       };
 
-      try {
-        const apiRes = await axios.request(options);
-        const matchData = apiRes.data;
-        
-        const statusType = matchData?.status?.type || matchData?.status; 
-        
-        if (statusType === 'finished' || statusType === 'Finished') {
-          const homeScore = matchData?.homeScore?.current || 0;
-          const awayScore = matchData?.awayScore?.current || 0;
-          const totalGoals = homeScore + awayScore;
-          
-          let finalStatus = 'pending';
+      const apiResponse = await axios.request(options);
+      const fixtureData = apiResponse.data.response;
 
-          if (bet.prediction === 'Over 1.5') {
-            finalStatus = totalGoals > 1.5 ? 'won' : 'lost';
-          } 
-          else if (bet.prediction === 'Home Win') {
-            finalStatus = homeScore > awayScore ? 'won' : 'lost';
-          } else if (bet.prediction === 'Away Win') {
-            finalStatus = awayScore > homeScore ? 'won' : 'lost';
-          }
+      if (!fixtureData || fixtureData.length === 0) continue;
 
-          if (finalStatus !== 'pending') {
-            await db.query("UPDATE rollovers SET status = ? WHERE id = ?", [finalStatus, bet.id]);
-            updatedCount++;
-          }
+      const fixture = fixtureData[0];
+      const matchStatus = fixture.fixture.status.short; // FT, HT, 1H, etc.
+      
+      // We only settle coupons if the match is officially finished (FT)
+      if (matchStatus === 'FT') {
+        const homeGoals = fixture.goals.home;
+        const awayGoals = fixture.goals.away;
+        const totalGoals = homeGoals + awayGoals;
+        
+        let isWin = false;
+        const rule = run.prediction;
+
+        // Evaluate rules
+        if (rule === 'Over 1.5' && totalGoals > 1.5) isWin = true;
+        if (rule === 'Home Win' && homeGoals > awayGoals) isWin = true;
+        if (rule === 'Away Win' && awayGoals > homeGoals) isWin = true;
+
+        const finalStatus = isWin ? 'win' : 'loss';
+
+        // 3. Update the step status in your database
+        await pool.query('UPDATE bet_steps SET status = ? WHERE id = ?', [finalStatus, currentStep.id]);
+        updatedCount++;
+
+        // 4. If it was a win, automatically cascade and create the row structure for the next day
+        if (isWin) {
+          const nextDay = currentStep.day_number + 1;
+          const nextStake = Math.floor(currentStep.win_amount); // Compound payout as next stake
+          const nextWinAmount = nextStake * run.base_odds;
+
+          await pool.query(
+            'INSERT INTO bet_steps (rollover_id, day_number, stake, odds, win_amount, status) VALUES (?, ?, ?, ?, ?, "pending")',
+            [run.id, nextDay, nextStake, run.base_odds, nextWinAmount]
+          );
         }
-      } catch (apiErr) {
-        console.error(`Error processing match ID ${bet.match_id}:`, apiErr.message);
       }
     }
 
-    res.json({ message: `Settlement run completed. Updated ${updatedCount} betslips.` });
+    res.json({ message: `Settlement routine finished. Updated ${updatedCount} open bet steps.` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Automation crash error:", err);
+    res.status(500).json({ error: "API Settlement failure occurred." });
   }
 });
 
-// Start Server Listen
-const PORT = process.env.PORT || 3002;
+// Start listening
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Backend tracking engine online on port ${PORT}`);
+  console.log(`Server listening intently on port ${PORT}`);
 });
