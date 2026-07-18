@@ -30,11 +30,11 @@ function App() {
   const [stagedMatches, setStagedMatches] = useState([]);
   const [accumulatedOdds, setAccumulatedOdds] = useState(1.00);
   const [matchIdInput, setMatchIdInput] = useState(''); // Stores the RapidAPI Match ID
+  const [prediction, setPrediction] = useState('Over 1.5'); // Stores current rule selection
   
   // Individual Accumulator Selection Builders
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
-  const [prediction, setPrediction] = useState('Over 1.5');
   const [matchOdd, setMatchOdd] = useState('');
 
   // Active runs fetched from database
@@ -151,6 +151,7 @@ function App() {
     const finalStake = parseFloat(baseStake) || 1000;
 
     try {
+      // Sent directly with match_id and prediction to database keys!
       await axios.post(`${API_URL}/api/rollovers`, {
         title: `${currentChallengeDate} Run`,
         target_goal: "1M Goal",
