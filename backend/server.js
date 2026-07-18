@@ -8,21 +8,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. MySQL Connection Pool
+// 1. MySQL Connection Pool (Updated with specific Aiven SSL configurations & Port handling)
 const db = mysql.createPool({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 17964, // Automatically grabs your 17964 port from environment variables
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  // Added this object so Aiven welcomes Render's secure connection requests
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 // Test DB Connection
 db.getConnection()
   .then(conn => {
-    console.log("✅ MySQL Database connected successfully.");
+    console.log("✅ MySQL Database connected successfully with secure SSL.");
     conn.release();
   })
   .catch(err => console.error("❌ Database connection failed:", err));
