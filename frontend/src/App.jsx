@@ -6,6 +6,74 @@ const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
 const STORAGE_KEY_TEAM_ANALYSIS = 'mxrollover_team_analysis_logs';
 
+// Comprehensive League & Team Database based on user specs
+const LEAGUE_TEAMS_DATA = {
+  "La Liga": [
+    { rank: 1, name: "Alavés", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.2, goalsConcededAvg: 1.1 },
+    { rank: 2, name: "Sevilla", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0 },
+    { rank: 3, name: "Deportivo", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2 },
+    { rank: 4, name: "Racing Santander", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.3 },
+    { rank: 5, name: "Real Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.5, goalsScoredAvg: 2.4, goalsConcededAvg: 0.7 },
+    { rank: 6, name: "Celta", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
+    { rank: 7, name: "Barcelona", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.8, goalsScoredAvg: 2.6, goalsConcededAvg: 0.8 },
+    { rank: 8, name: "Málaga", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2 },
+    { rank: 9, name: "Real Sociedad", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.5, goalsConcededAvg: 1.1 },
+    { rank: 10, name: "Osasuna", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
+    { rank: 11, name: "Villarreal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.4, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
+    { rank: 12, name: "Atlético Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.7, goalsConcededAvg: 0.8 },
+    { rank: 13, name: "Levante", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.4 },
+    { rank: 14, name: "Elche", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 0.9, goalsConcededAvg: 1.5 },
+    { rank: 15, name: "Espanyol", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
+    { rank: 16, name: "Valencia", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
+    { rank: 17, name: "Betis", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.4, goalsConcededAvg: 1.2 },
+    { rank: 18, name: "Athletic", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.5, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0 },
+    { rank: 19, name: "Rayo Vallecano", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
+    { rank: 20, name: "Getafe", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 3.9, goalsScoredAvg: 0.8, goalsConcededAvg: 1.2 }
+  ],
+  "EPL": [
+    { rank: 1, name: "Bournemouth", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.4 },
+    { rank: 2, name: "Arsenal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.9, goalsScoredAvg: 2.2, goalsConcededAvg: 0.7 },
+    { rank: 3, name: "Aston Villa", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.8, goalsConcededAvg: 1.1 },
+    { rank: 4, name: "Brentford", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.5, goalsConcededAvg: 1.3 },
+    { rank: 5, name: "Brighton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.6, goalsConcededAvg: 1.3 },
+    { rank: 6, name: "Chelsea", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.0, goalsScoredAvg: 1.9, goalsConcededAvg: 1.1 },
+    { rank: 7, name: "Coventry", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
+    { rank: 8, name: "Palace", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
+    { rank: 9, name: "Everton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
+    { rank: 10, name: "Fulham", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
+    { rank: 11, name: "Hull", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
+    { rank: 12, name: "Ipswich Town", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.0, goalsScoredAvg: 1.0, goalsConcededAvg: 1.6 },
+    { rank: 13, name: "Leeds", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.4, goalsConcededAvg: 1.3 },
+    { rank: 14, name: "Liverpool", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.2, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9 },
+    { rank: 15, name: "Man City", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.5, goalsScoredAvg: 2.5, goalsConcededAvg: 0.8 },
+    { rank: 16, name: "Man United", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
+    { rank: 17, name: "Newcastle", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.7, goalsConcededAvg: 1.1 },
+    { rank: 18, name: "Nottm Forest", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4 },
+    { rank: 19, name: "Sunderland", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5 },
+    { rank: 20, name: "Spurs", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 1.8, goalsConcededAvg: 1.3 }
+  ],
+  "Bundesliga": [
+    { rank: 1, name: "Köln", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
+    { rank: 2, name: "Leverkusen", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.4, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9 },
+    { rank: 3, name: "Bayern", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.1, goalsScoredAvg: 2.8, goalsConcededAvg: 0.8 },
+    { rank: 4, name: "Dortmund", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 2.1, goalsConcededAvg: 1.1 },
+    { rank: 5, name: "Mönchengladbach", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.4, goalsConcededAvg: 1.4 },
+    { rank: 6, name: "Eintracht Frankfurt", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
+    { rank: 7, name: "Augsburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4 },
+    { rank: 8, name: "Mainz", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
+    { rank: 9, name: "Hamburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
+    { rank: 10, name: "RB Leipzig", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.9, goalsConcededAvg: 1.0 },
+    { rank: 11, name: "Freiburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
+    { rank: 12, name: "Paderborn", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.6 },
+    { rank: 13, name: "Schalke", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
+    { rank: 14, name: "SV Elversberg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5 },
+    { rank: 15, name: "Hoffenheim", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.5, goalsConcededAvg: 1.5 },
+    { rank: 16, name: "Union Berlin", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
+    { rank: 17, name: "VfB Stuttgart", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.7, goalsConcededAvg: 1.3 },
+    { rank: 18, name: "Werder", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.5 }
+  ]
+};
+
 function App() {
   // Navigation & Tab Switch State
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -57,15 +125,14 @@ function App() {
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Team Analysis & Cycle Form States
-  const [analysisLeague, setAnalysisLeague] = useState('La Liga');
-  const [analysisTeamName, setAnalysisTeamName] = useState('Barcelona');
-  const [analysisDate, setAnalysisDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [analysisResult, setAnalysisResult] = useState('Win (2-1)');
-  const [analysisCorners, setAnalysisCorners] = useState('9');
-  const [analysisWinProb, setAnalysisWinProb] = useState('80');
-  const [analysisFormScore, setAnalysisFormScore] = useState('85');
-  const [teamLogs, setTeamLogs] = useState([]);
+  // League Tables & H2H Tab States
+  const [selectedLeague, setSelectedLeague] = useState('La Liga');
+  const [leagueSubView, setLeagueSubView] = useState('table'); // 'table' or 'h2h'
+  const [h2hTeamA, setH2hTeamA] = useState('Barcelona');
+  const [h2hTeamB, setH2hTeamB] = useState('Real Madrid');
+  
+  // Team Detail Modal State
+  const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
 
   // Load database entries on mount from Local Storage
   useEffect(() => {
@@ -76,11 +143,9 @@ function App() {
     try {
       const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
       const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
-      const rawTeamLogs = localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS);
       
       const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
       const steps = rawSteps ? JSON.parse(rawSteps) : [];
-      const logs = rawTeamLogs ? JSON.parse(rawTeamLogs) : [];
 
       const runs = [...rollovers].reverse().map(run => {
         const runSteps = steps
@@ -90,7 +155,6 @@ function App() {
       });
 
       setRolloverRuns(runs);
-      setTeamLogs(logs);
       
       if (runs.length > 0) {
         const lastRun = runs[0];
@@ -282,45 +346,13 @@ function App() {
     }
   };
 
-  // Submit Daily Team Analysis Log
-  const handleSaveTeamAnalysis = (e) => {
-    e.preventDefault();
-    if (!analysisTeamName) {
-      alert("Please enter a team name.");
-      return;
-    }
-
-    const cornersVal = parseFloat(analysisCorners) || 0;
-    const cornerTip = cornersVal >= 8.5 ? "Over 8.5 Corners Expected" : "Under 8.5 Corners Expected";
-
-    const newLog = {
-      id: Date.now(),
-      league: analysisLeague,
-      team: analysisTeamName,
-      date: analysisDate,
-      result: analysisResult,
-      corners: cornersVal,
-      cornerTip: cornerTip,
-      winProb: parseInt(analysisWinProb) || 50,
-      formScore: parseInt(analysisFormScore) || 50
-    };
-
-    const updatedLogs = [newLog, ...teamLogs];
-    setTeamLogs(updatedLogs);
-    localStorage.setItem(STORAGE_KEY_TEAM_ANALYSIS, JSON.stringify(updatedLogs));
-    alert("Team analysis cycle recorded successfully!");
-  };
-
-  // Download All App Data as ZIP / JSON backup
+  // Download All App Data as JSON backup
   const handleDownloadBackupZip = () => {
     const backupData = {
       rollovers: localStorage.getItem(STORAGE_KEY_ROLLOVERS),
       steps: localStorage.getItem(STORAGE_KEY_STEPS),
       teamAnalysis: localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS),
-      settings: {
-        username: username,
-        theme: theme
-      },
+      settings: { username, theme },
       exportDate: new Date().toISOString()
     };
 
@@ -403,10 +435,10 @@ function App() {
             <div className="header-left">
               <h1>
                 <i className="fa-solid fa-layer-group"></i> 
-                𝐃𝐫𝐞𝐚𝐦𝐬 𝐜𝐨𝐦𝐞 𝐭𝐫𝐮𝐞
+                Vozinha255 League
               </h1>
-              <p style={{ marginTop: '5px', color: 'blue', opacity: 1, fontSize: '0.9rem' }}>
-                ✦ 𝐹𝑜𝑐𝑢𝑠 𝑜𝑛 𝑦𝑜𝑢𝑟 𝑑𝑟𝑒𝑎𝑚 𝑛𝑒𝑣𝑒𝑟 𝑔𝑖𝑣𝑒 𝑢𝑝. ✧
+              <p style={{ marginTop: '5px', color: '#3b82f6', opacity: 1, fontSize: '0.9rem' }}>
+                ✦ East Africa eFootball Management & Standings ✧
               </p>
             </div>
             
@@ -440,7 +472,7 @@ function App() {
                       <input type="file" id="profile-upload-input" accept="image/*" style={{ display: 'none' }} onChange={handleProfilePicChange} />
                       <div>
                         <strong id="display-username">{username}</strong>
-                        <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Member</div>
+                        <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>League Manager</div>
                       </div>
                     </div>
                     
@@ -449,22 +481,20 @@ function App() {
                     <a href="#dashboard" onClick={() => { setActiveTab('dashboard'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-tachometer-alt"></i> Dashboard
                     </a>
+                    <a href="#tables" onClick={() => { setActiveTab('tables'); setShowProfileDropdown(false); }}>
+                      <i className="fa-solid fa-table"></i> League Tables & H2H
+                    </a>
                     <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}>
                       <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
-                    </a>
-                    <a href="#analysis" onClick={() => { setActiveTab('analysis'); setShowProfileDropdown(false); }}>
-                      <i className="fas fa-chart-pie"></i> Team Analysis Cycles
                     </a>
                     <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-history"></i> My bets
                     </a>
                     
-                    {/* BACKUP DOWNLOAD BUTTON */}
                     <a href="#backup" onClick={(e) => { e.preventDefault(); handleDownloadBackupZip(); setShowProfileDropdown(false); }} style={{ color: '#10b981', fontWeight: 'bold' }}>
                       <i className="fa-solid fa-download"></i> Download Data Backup (.json)
                     </a>
 
-                    {/* ADMIN PANEL ENTRY TRIGGER */}
                     <a href="#admin" onClick={(e) => { e.preventDefault(); setShowAdminModal(true); setShowProfileDropdown(false); }} style={{ color: '#e74c3c', fontWeight: 'bold' }}>
                       <i className="fa-solid fa-lock"></i> Admin Panel
                     </a>
@@ -514,21 +544,21 @@ function App() {
           
           <nav>
             <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-              <i className="fas fa-home"></i> Dashboard
+              <i className="fas fa-home"></i> Home
+            </button>
+            <button className={`nav-btn ${activeTab === 'tables' ? 'active' : ''}`} onClick={() => setActiveTab('tables')}>
+              <i className="fa-solid fa-table"></i> Tables & H2H
             </button>
             <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}>
-              <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
-            </button>
-            <button className={`nav-btn ${activeTab === 'analysis' ? 'active' : ''}`} onClick={() => setActiveTab('analysis')}>
-              <i className="fas fa-chart-pie"></i> Analysis
+              <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active Bets
             </button>
             <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
-              <i className="fa-solid fa-clock-rotate-left"></i> My bets
+              <i className="fa-solid fa-clock-rotate-left"></i> History
             </button>
           </nav>
         </header>
 
-        {/* ADMIN MODAL PANEL CONTAINER */}
+        {/* ADMIN MODAL PANEL */}
         {showAdminModal && (
           <div className="admin-modal-overlay" onClick={() => setShowAdminModal(false)}>
             <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '20px', borderRadius: '10px', maxWidth: '500px', width: '90%', margin: '50px auto', maxHeight: '85vh', overflowY: 'auto' }}>
@@ -539,7 +569,7 @@ function App() {
 
               {!isAdminLoggedIn ? (
                 <form onSubmit={handleAdminLogin}>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage bet statuses and settings. (Default: 1234)</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage bet statuses. (Default: 1234)</p>
                   <div className="input-group" style={{ margin: '15px 0' }}>
                     <label>Admin Password</label>
                     <input type="password" placeholder="Enter password (e.g., 1234)" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
@@ -577,7 +607,7 @@ function App() {
                     )}
                   </div>
 
-                  <h4 style={{ color: '#1e293b', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>Manage Active Bets Status & Records</h4>
+                  <h4 style={{ color: '#1e293b', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>Manage Active Bets Status</h4>
                   {rolloverRuns.length === 0 ? (
                     <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No active runs found in local storage database.</p>
                   ) : (
@@ -620,18 +650,59 @@ function App() {
           </div>
         )}
 
-        {/* MAIN BODY CONTENT SECTIONS */}
+        {/* TEAM DETAIL MODAL (IMAGE 4 STYLE POPUP) */}
+        {selectedTeamDetail && (
+          <div className="admin-modal-overlay" onClick={() => setSelectedTeamDetail(null)}>
+            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', color: '#fff', padding: '20px', borderRadius: '12px', maxWidth: '450px', width: '90%', margin: '40px auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: '#38bdf8' }}><i className="fa-solid fa-shield-cat"></i> {selectedTeamDetail.name} Club Analytics</h3>
+                <button onClick={() => setSelectedTeamDetail(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}><i className="fa-solid fa-xmark"></i></button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Goals Scored / Match</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#10b981', marginTop: '4px' }}>{selectedTeamDetail.goalsScoredAvg}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#10b981', marginTop: '2px' }}>High Scoring Rate</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Goals Conceded / Match</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ef4444', marginTop: '4px' }}>{selectedTeamDetail.goalsConcededAvg}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#ef4444', marginTop: '2px' }}>Defensive Record</div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', marginBottom: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Average Corners Per Match:</span>
+                  <strong style={{ color: '#38bdf8', fontSize: '1.1rem' }}>{selectedTeamDetail.cornersAvg}</strong>
+                </div>
+                <div style={{ width: '100%', background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(selectedTeamDetail.cornersAvg / 10) * 100}%`, background: '#38bdf8', height: '100%' }}></div>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
+                  💡 Market Tip: {selectedTeamDetail.cornersAvg >= 5.5 ? "Over 8.5 Corners Recommended" : "Standard Corner Play"}
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+                <strong style={{ color: '#f59e0b' }}>Vozinha255 League Insights:</strong> This team is fully registered for East African eFootball league pairings and tournament match points tracking.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MAIN BODY CONTENT */}
         <main className="content-container">
           
           {/* TAB 1: Dashboard View */}
           {activeTab === 'dashboard' && (
             <section id="dashboard-view" className="page-view active" style={{ display: 'block' }}>
-              
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ color: '#1e293b' }}>Dashboard Management</h2>
+                <h2 style={{ color: '#1e293b' }}>Vozinha255 League Hub</h2>
               </div>
 
-              {/* ACCORDION DROPDOWN 1: CREATE BETSLIP */}
+              {/* ACCORDION 1: CREATE BETSLIP */}
               <div className={`history-dropdown-card ${openCreateBetslip ? 'open' : ''}`}>
                 <div className="history-header-toggle" onClick={() => setOpenCreateBetslip(!openCreateBetslip)} style={{ backgroundColor: '#f1f5f9' }}>
                   <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
@@ -667,14 +738,9 @@ function App() {
                           <option value="Over 1.5">Over 1.5 Goals</option>
                           <option value="Over 2.5">Over 2.5 Goals</option>
                           <option value="Under 3.5">Under 3.5 Goals</option>
-                          <option value="Under 4.5">Under 4.5 Goals</option>
                           <option value="Home Win">Home Win (1)</option>
                           <option value="Away Win">Away Win (2)</option>
                           <option value="BTTS Yes">Both Teams to Score: Yes</option>
-                          <option value="BTTS No">Both Teams to Score: No</option>
-                          <option value="Double Chance 1X">Double Chance: 1X</option>
-                          <option value="Double Chance X2">Double Chance: X2</option>
-                          <option value="Double Chance 12">Double Chance: 12</option>
                         </select>
                       </div>
                     </div>
@@ -698,7 +764,7 @@ function App() {
                 </div>
               </div>
 
-              {/* ACCORDION DROPDOWN 2: FLASHSCORE MOBI */}
+              {/* ACCORDION 2: FLASHSCORE MOBI */}
               <div className={`history-dropdown-card ${openLiveScore ? 'open' : ''}`} style={{ marginTop: '15px' }}>
                 <div className="history-header-toggle" onClick={() => setOpenLiveScore(!openLiveScore)} style={{ backgroundColor: '#f1f5f9' }}>
                   <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
@@ -712,29 +778,165 @@ function App() {
                   </div>
                 </div>
               </div>
-
-              {/* Manual Settlement Block */}
-              <div className="creator-card" style={{ marginTop: '20px' }}>
-                <h3><i className="fa-solid fa-gavel"></i> Open Slip Settlement</h3>
-                <div id="dashboard-active-settlement">
-                  {rolloverRuns.length === 0 ? (
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', textAlign: 'center', padding: '10px' }}>No open un-settled bets slips currently found.</p>
-                  ) : (
-                    rolloverRuns.slice(0, 1).map(run => (
-                      <div key={run.id} className="settlement-block">
-                        <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>Active Rollover Challenge</div>
-                        <div style={{ fontSize: '0.8rem', margin: '6px 0', color: '#475569', lineHeight: 1.3 }}>{run.title}</div>
-                        <button className="settle-action-btn" onClick={() => setActiveTab('goal')}>Settle Day Steps</button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
             </section>
           )}
 
-          {/* TAB 2: Active Bets */}
+          {/* TAB 2: LEAGUE TABLES & H2H VIEW (REQUESTED UPDATE) */}
+          {activeTab === 'tables' && (
+            <section id="tables-view" className="page-view active" style={{ display: 'block' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                <h2 style={{ color: '#1e293b', margin: 0 }}><i className="fa-solid fa-table"></i> League Standings & H2H</h2>
+                
+                {/* League Selector Dropdown */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select 
+                    value={selectedLeague} 
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#fff', color: '#1e293b' }}
+                  >
+                    <option value="La Liga">🇪🇸 La Liga</option>
+                    <option value="EPL">🇬🇧 Premier League (EPL)</option>
+                    <option value="Bundesliga">🇩🇪 Bundesliga</option>
+                  </select>
+
+                  <select 
+                    value={leagueSubView} 
+                    onChange={(e) => setLeagueSubView(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#2563eb', color: '#fff' }}
+                  >
+                    <option value="table">Table View</option>
+                    <option value="h2h">H2H Comparison</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* TABLE SUB-VIEW */}
+              {leagueSubView === 'table' && (
+                <div style={{ background: '#1e293b', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                  <div style={{ padding: '12px 15px', background: '#0f172a', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{selectedLeague} 2026-2027 Season</span>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tap any team to view detailed stats</span>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', color: '#fff', fontSize: '0.85rem', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', fontSize: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                          <th style={{ padding: '10px' }}>Club</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>MP</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>W</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>D</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>L</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>GF</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>GA</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>GD</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {LEAGUE_TEAMS_DATA[selectedLeague].map((team) => (
+                          <tr 
+                            key={team.name}
+                            onClick={() => setSelectedTeamDetail(team)}
+                            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'background 0.2s' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <td style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ color: '#94a3b8', minWidth: '18px', textAlign: 'right' }}>{team.rank}</span>
+                              <strong style={{ color: '#f8fafc' }}>{team.name}</strong>
+                            </td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.mp}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.w}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.d}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.l}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.gf}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.ga}</td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{team.gd}</td>
+                            <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#38bdf8' }}>{team.pts}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* H2H SUB-VIEW */}
+              {leagueSubView === 'h2h' && (
+                <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                  <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '15px' }}>Head-to-Head (H2H) Team Comparison</h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Team A</label>
+                      <select 
+                        value={h2hTeamA} 
+                        onChange={(e) => setH2hTeamA(e.target.value)}
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                      >
+                        {LEAGUE_TEAMS_DATA[selectedLeague].map(t => (
+                          <option key={t.name} value={t.name}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Team B</label>
+                      <select 
+                        value={h2hTeamB} 
+                        onChange={(e) => setH2hTeamB(e.target.value)}
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                      >
+                        {LEAGUE_TEAMS_DATA[selectedLeague].map(t => (
+                          <option key={t.name} value={t.name}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const teamAObj = LEAGUE_TEAMS_DATA[selectedLeague].find(t => t.name === h2hTeamA) || LEAGUE_TEAMS_DATA[selectedLeague][0];
+                    const teamBObj = LEAGUE_TEAMS_DATA[selectedLeague].find(t => t.name === h2hTeamB) || LEAGUE_TEAMS_DATA[selectedLeague][1];
+
+                    return (
+                      <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                          <div style={{ textAlign: 'center', flex: 1 }}>
+                            <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>{teamAObj.name}</strong>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Goals/Match: {teamAObj.goalsScoredAvg}</div>
+                          </div>
+                          <div style={{ fontWeight: 'bold', color: '#ef4444', padding: '0 10px' }}>VS</div>
+                          <div style={{ textAlign: 'center', flex: 1 }}>
+                            <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>{teamBObj.name}</strong>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Goals/Match: {teamBObj.goalsScoredAvg}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem' }}>
+                          <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontWeight: 'bold', color: '#3b82f6', marginBottom: '4px' }}>{teamAObj.name} Metrics</div>
+                            <div>Corners Avg: {teamAObj.cornersAvg}</div>
+                            <div>Conceded Avg: {teamAObj.goalsConcededAvg}</div>
+                          </div>
+                          <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontWeight: 'bold', color: '#3b82f6', marginBottom: '4px' }}>{teamBObj.name} Metrics</div>
+                            <div>Corners Avg: {teamBObj.cornersAvg}</div>
+                            <div>Conceded Avg: {teamBObj.goalsConcededAvg}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: '12px', background: '#eff6ff', padding: '10px', borderRadius: '6px', fontSize: '0.8rem', color: '#1e40af' }}>
+                          <i className="fa-solid fa-chart-line"></i> <strong>H2H Prediction Insight:</strong> Combined scoring averages indicate a high probability of both teams scoring (BTTS) and over 2.5 total match goals.
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* TAB 3: Active Bets */}
           {activeTab === 'goal' && (
             <section id="goal-view" className="page-view active" style={{ display: 'block' }}>
               <h2 style={{ marginBottom: '15px', color: '#333' }}>Active Bets</h2>
@@ -746,7 +948,6 @@ function App() {
                 ) : (
                   rolloverRuns.map((run) => {
                     const isExpanded = expandedRunId === run.id;
-                    
                     const displaySteps = run.steps && run.steps.length > 0 ? run.steps : [
                       {
                         id: `fallback-${run.id}`,
@@ -762,12 +963,7 @@ function App() {
                       <div 
                         className={`history-dropdown-card ${isExpanded ? 'open' : ''}`} 
                         key={run.id} 
-                        style={{ 
-                          borderLeft: '4px solid #00b0ff', 
-                          marginBottom: '20px',
-                          cursor: 'pointer',
-                          backgroundColor: isExpanded ? '#e3f2fd' : '#ffffff' 
-                        }}
+                        style={{ borderLeft: '4px solid #00b0ff', marginBottom: '20px', cursor: 'pointer', backgroundColor: isExpanded ? '#e3f2fd' : '#ffffff' }}
                         onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
                       >
                         <div className="history-header-toggle" style={{ display: 'block', padding: '12px' }}>
@@ -775,7 +971,7 @@ function App() {
                             <strong>Active Run:</strong> {run.title}
                           </p>
                           <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#555' }}>
-                            Market: {run.prediction} {run.match_id ? `| Match ID: ${run.match_id}` : ''}
+                            Market: {run.prediction}
                           </p>
                         </div>
                         
@@ -829,7 +1025,6 @@ function App() {
                               </tbody>
                             </table>
                           </div>
-                          <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px', textAlign: 'center' }}>* Note: Bet statuses are locked and can only be modified via the Admin Panel in your Profile menu.</p>
                         </div>
                       </div>
                     );
@@ -839,108 +1034,7 @@ function App() {
             </section>
           )}
 
-          {/* TAB 3: Team Analysis & Cycles (NEW FEATURE) */}
-          {activeTab === 'analysis' && (
-            <section id="analysis-view" className="page-view active" style={{ display: 'block' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ color: '#1e293b' }}><i className="fas fa-chart-pie" style={{ color: '#3b82f6' }}></i> Team Performance & Cycles</h2>
-                <button onClick={handleDownloadBackupZip} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                  <i className="fa-solid fa-download"></i> Save Data Backup
-                </button>
-              </div>
-
-              {/* Upload & Log Form Card */}
-              <div style={{ background: '#ffffff', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '12px' }}>Upload Daily Team Statistics (EPL, La Liga, Bundesliga)</h3>
-                <form onSubmit={handleSaveTeamAnalysis}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>League Focus</label>
-                      <select value={analysisLeague} onChange={(e) => setAnalysisLeague(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}>
-                        <option value="La Liga">🇪🇸 La Liga (e.g. Barcelona, Real Madrid)</option>
-                        <option value="EPL">🇬🇧 Premier League (EPL)</option>
-                        <option value="Bundesliga">🇩🇪 Bundesliga</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Team Name</label>
-                      <input type="text" placeholder="e.g. Barcelona" value={analysisTeamName} onChange={(e) => setAnalysisTeamName(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Match Date</label>
-                      <input type="date" value={analysisDate} onChange={(e) => setAnalysisDate(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Match Result / Score</label>
-                      <input type="text" placeholder="e.g. Won 3-1" value={analysisResult} onChange={(e) => setAnalysisResult(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Corners Count</label>
-                      <input type="number" placeholder="e.g. 9" value={analysisCorners} onChange={(e) => setAnalysisCorners(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Next Win Probability (%)</label>
-                      <input type="number" min="0" max="100" value={analysisWinProb} onChange={(e) => setAnalysisWinProb(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Performance Form Score (%)</label>
-                      <input type="number" min="0" max="100" value={analysisFormScore} onChange={(e) => setAnalysisFormScore(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                    </div>
-                  </div>
-
-                  <button type="submit" style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    <i className="fas fa-sync-alt"></i> Generate Performance Cycle & Insights
-                  </button>
-                </form>
-              </div>
-
-              {/* Display Logged Team Cycles with Circular Progress Indicators */}
-              <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '10px' }}>Recorded Teams & Analysis Cycles</h3>
-              {teamLogs.length === 0 ? (
-                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', background: '#fff', borderRadius: '8px' }}>No team analysis cycles uploaded yet. Add your first team above!</p>
-              ) : (
-                teamLogs.map(log => (
-                  <div key={log.id} style={{ background: '#fff', borderRadius: '10px', padding: '15px', marginBottom: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #3b82f6' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{log.team} <span style={{ fontSize: '0.75rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px' }}>{log.league}</span></strong>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{log.date}</span>
-                    </div>
-                    <p style={{ fontSize: '0.85rem', color: '#475569', margin: '4px 0' }}><strong>Result:</strong> {log.result} | <strong>Corners:</strong> {log.corners} ({log.cornerTip})</p>
-                    
-                    {/* Visual Cycle Progress Rings / Bars */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px' }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>Win Probability</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>{log.winProb}%</div>
-                        <div style={{ width: '100%', background: '#e2e8f0', height: '6px', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${log.winProb}%`, background: '#10b981', height: '100%' }}></div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>Form Index</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b82f6' }}>{log.formScore}%</div>
-                        <div style={{ width: '100%', background: '#e2e8f0', height: '6px', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${log.formScore}%`, background: '#3b82f6', height: '100%' }}></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: '10px', background: '#eff6ff', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', color: '#1e40af' }}>
-                      <i className="fa-solid fa-lightbulb"></i> <strong>AI Prediction Tip:</strong> Based on current cycle performance, recommended corner market is <strong>{log.cornerTip}</strong> with high confidence for next fixture.
-                    </div>
-                  </div>
-                ))
-              )}
-            </section>
-          )}
-
-          {/* TAB 4: My Bets (History Archive) */}
+          {/* TAB 4: My Bets History */}
           {activeTab === 'transactions' && (
             <section id="transactions-view" className="page-view active" style={{ display: 'block' }}>
               <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History</h2>
@@ -950,13 +1044,9 @@ function App() {
                 ) : (
                   rolloverRuns.map(run => {
                     const settledSteps = run.steps ? run.steps.filter(s => s.status === 'win' || s.status === 'loss') : [];
-                    
                     let statusIcon = '⏳'; 
-                    if (settledSteps.some(s => s.status === 'loss')) {
-                      statusIcon = '❌';
-                    } else if (settledSteps.length > 0 && settledSteps.every(s => s.status === 'win')) {
-                      statusIcon = '✅';
-                    }
+                    if (settledSteps.some(s => s.status === 'loss')) statusIcon = '❌';
+                    else if (settledSteps.length > 0 && settledSteps.every(s => s.status === 'win')) statusIcon = '✅';
 
                     return (
                       <div className="history-dropdown-card" key={run.id}>
