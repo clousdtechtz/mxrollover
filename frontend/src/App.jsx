@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
 // Local storage storage key constants
 const STORAGE_KEY_ROLLOVERS = 'mxrollover_local_rollovers';
 const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
+const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
 
 function App() {
   // Navigation & Tab Switch State
@@ -16,9 +16,20 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('userProfileTheme') || 'default');
   const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfileImage') || null);
   const [bgImage, setBgImage] = useState(() => {
-    const active = localStorage.getItem('useCustomBgActive') === 'true';
+    const active = localStorage.getItem('useCustomBgActive'] === 'true';
     return active ? localStorage.getItem('userProfileCustomBg') : null;
   });
+
+  // Admin Panel States
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  
+  // Password Change States inside Admin Panel
+  const [showChangePassSection, setShowChangePassSection] = useState(false);
+  const [oldPassInput, setOldPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
 
   // Dashboard Accordion dropdown states
   const [openCreateBetslip, setOpenCreateBetslip] = useState(true);
@@ -32,8 +43,8 @@ function App() {
   const [kickOffTime, setKickOffTime] = useState('');
   const [stagedMatches, setStagedMatches] = useState([]);
   const [accumulatedOdds, setAccumulatedOdds] = useState(1.00);
-  const [matchIdInput, setMatchIdInput] = useState(''); // Stores the RapidAPI Match ID
-  const [prediction, setPrediction] = useState('Over 1.5'); // Stores current rule selection
+  const [matchIdInput, setMatchIdInput] = useState('');
+  const [prediction, setPrediction] = useState('Over 1.5');
   
   // Individual Accumulator Selection Builders
   const [homeTeam, setHomeTeam] = useState('');
@@ -43,7 +54,6 @@ function App() {
   // Active runs loaded from local storage
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [apiChecking, setApiChecking] = useState(false);
 
   // Load database entries on mount from Local Storage
   useEffect(() => {
@@ -58,7 +68,6 @@ function App() {
       const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
       const steps = rawSteps ? JSON.parse(rawSteps) : [];
 
-      // Combine parent rollovers with their related daily steps sorted descending by id
       const runs = [...rollovers].reverse().map(run => {
         const runSteps = steps
           .filter(step => String(step.rollover_id) === String(run.id))
@@ -68,7 +77,6 @@ function App() {
 
       setRolloverRuns(runs);
       
-      // Automatic Rollover Stake Calculation from local storage payload
       if (runs.length > 0) {
         const lastRun = runs[0];
         const wonSteps = lastRun.steps ? lastRun.steps.filter(s => s.status === 'win') : [];
@@ -81,104 +89,6 @@ function App() {
     } catch (err) {
       console.error("Local storage load error.", err);
       setLoading(false);
-    }
-  };
-
-  // Trigger Local API/Score Check Settlement simulation via RapidAPI or fallback logic
-  const handleTriggerApiSettlement = async () => {
-    setApiChecking(true);
-    try {
-      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
-      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
-      
-      const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
-      let steps = rawSteps ? JSON.parse(rawSteps) : [];
-      
-      const activeRuns = rollovers.filter(r => r.match_id !== null && r.match_id !== undefined && r.match_id !== '');
-      if (activeRuns.length === 0) {
-        alert("No active targets with match IDs found.");
-        setApiChecking(false);
-        return;
-      }
-
-      let updatedCount = 0;
-
-      for (let run of activeRuns) {
-        const pendingSteps = steps.filter(s => String(s.rollover_id) === String(run.id) && s.status === 'pending');
-        if (pendingSteps.length === 0) continue;
-        const currentStep = pendingSteps[0];
-
-        try {
-          const options = {
-            method: 'GET',
-            url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures',
-            params: { id: run.match_id },
-            headers: {
-              'X-RapidAPI-Key': process.env.REACT_APP_RAPIDAPI_KEY || '',
-              'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
-            }
-          };
-
-          const apiResponse = await axios.request(options);
-          const fixtureData = apiResponse.data.response;
-          if (!fixtureData || fixtureData.length === 0) continue;
-
-          const fixture = fixtureData[0];
-          const matchStatus = fixture.fixture.status.short;
-          
-          if (matchStatus === 'FT') {
-            const homeGoals = fixture.goals.home;
-            const awayGoals = fixture.goals.away;
-            const totalGoals = homeGoals + awayGoals;
-            
-            let isWin = false;
-            const rule = run.prediction;
-
-            if (rule === 'Over 1.5' && totalGoals > 1.5) isWin = true;
-            if (rule === 'Over 2.5' && totalGoals > 2.5) isWin = true;
-            if (rule === 'Under 3.5' && totalGoals < 3.5) isWin = true;
-            if (rule === 'Under 4.5' && totalGoals < 4.5) isWin = true;
-            if (rule === 'Home Win' && homeGoals > awayGoals) isWin = true;
-            if (rule === 'Away Win' && awayGoals > homeGoals) isWin = true;
-            if (rule === 'BTTS Yes' && homeGoals > 0 && awayGoals > 0) isWin = true;
-            if (rule === 'BTTS No' && (homeGoals === 0 || awayGoals === 0)) isWin = true;
-            if (rule === 'Double Chance 1X' && homeGoals >= awayGoals) isWin = true;
-            if (rule === 'Double Chance X2' && awayGoals >= homeGoals) isWin = true;
-            if (rule === 'Double Chance 12' && homeGoals !== awayGoals) isWin = true;
-
-            const finalStatus = isWin ? 'win' : 'loss';
-            steps = steps.map(s => s.id === currentStep.id ? { ...s, status: finalStatus } : s);
-            updatedCount++;
-
-            if (isWin) {
-              const nextDay = currentStep.day_number + 1;
-              const nextStake = Math.floor(currentStep.win_amount);
-              const nextWinAmount = nextStake * run.base_odds;
-              const newStepId = steps.length > 0 ? Math.max(...steps.map(s => s.id)) + 1 : 1;
-
-              steps.push({
-                id: newStepId,
-                rollover_id: run.id,
-                day_number: nextDay,
-                stake: nextStake,
-                odds: run.base_odds,
-                win_amount: nextWinAmount,
-                status: 'pending'
-              });
-            }
-          }
-        } catch (apiErr) {
-          console.warn("External API fetch skipped/failed, keeping local state intact.", apiErr);
-        }
-      }
-
-      localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
-      alert(`Settlement process finished! Updated ${updatedCount} bet steps.`);
-      fetchData();
-    } catch (err) {
-      alert("Failed to run local settlement sync.");
-    } finally {
-      setApiChecking(false);
     }
   };
 
@@ -221,6 +131,65 @@ function App() {
     }
   };
 
+  // Admin Login Verification
+  const handleAdminLogin = (e) => {
+    e.preventDefault();
+    const storedPass = localStorage.getItem(STORAGE_KEY_ADMIN_PASS) || '1234';
+    if (adminPasswordInput === storedPass) {
+      setIsAdminLoggedIn(true);
+      setAdminPasswordInput('');
+    } else {
+      alert("Incorrect Admin Password! (Default is 1234)");
+    }
+  };
+
+  // Admin Password Update Handler
+  const handleChangeAdminPassword = (e) => {
+    e.preventDefault();
+    const currentStoredPass = localStorage.getItem(STORAGE_KEY_ADMIN_PASS) || '1234';
+    if (oldPassInput !== currentStoredPass) {
+      alert("Old password is incorrect!");
+      return;
+    }
+    if (!newPassInput || newPassInput.length < 3) {
+      alert("New password must be at least 3 characters long.");
+      return;
+    }
+    if (newPassInput !== confirmPassInput) {
+      alert("New passwords do not match!");
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY_ADMIN_PASS, newPassInput);
+    alert("Admin password successfully updated!");
+    setOldPassInput('');
+    setNewPassInput('');
+    setConfirmPassInput('');
+    setShowChangePassSection(false);
+  };
+
+  // Admin Action: Delete Challenge / Slip
+  const handleDeleteRolloverRun = (runId) => {
+    if (!window.confirm("Are you sure you want to delete this challenge run from database?")) return;
+    try {
+      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
+      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      
+      let rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
+      let steps = rawSteps ? JSON.parse(rawSteps) : [];
+
+      rollovers = rollovers.filter(r => r.id !== runId);
+      steps = steps.filter(s => String(s.rollover_id) !== String(runId));
+
+      localStorage.setItem(STORAGE_KEY_ROLLOVERS, JSON.stringify(rollovers));
+      localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
+      fetchData();
+      alert("Challenge run deleted successfully by Admin.");
+    } catch (err) {
+      alert("Failed to delete record.");
+    }
+  };
+
   const handleAppendMatch = (e) => {
     e.preventDefault();
     if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
@@ -231,7 +200,6 @@ function App() {
     const currentOddsValue = parseFloat(matchOdd);
     const textSelection = `${homeTeam} vs ${awayTeam} (${prediction} @${currentOddsValue})`;
     
-    // Automatically accept/stage the match when clicking '+' without blocking validation checks
     setStagedMatches([...stagedMatches, textSelection]);
     setAccumulatedOdds(prev => prev * currentOddsValue);
 
@@ -242,7 +210,6 @@ function App() {
 
   const handleGenerateActiveSlip = (e) => {
     e.preventDefault();
-    // Restriction validation check now happens only when trying to accept/generate the bet slip
     if (stagedMatches.length === 0) {
       alert("Please add at least one match to your coupon using the '+' button first.");
       return;
@@ -302,16 +269,52 @@ function App() {
     }
   };
 
+  // Status Toggling restricted only inside Admin Panel now
   const handleToggleBetStatus = (betId, currentStatus) => {
+    if (!isAdminLoggedIn) {
+      alert("Access Denied! You must log in to the Admin Panel to mark Win or Loss.");
+      return;
+    }
+
     let nextStatus = 'pending';
     if (currentStatus === 'pending') nextStatus = 'win';
     else if (currentStatus === 'win') nextStatus = 'loss';
 
     try {
+      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
       const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      
+      const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
       let steps = rawSteps ? JSON.parse(rawSteps) : [];
       
+      const targetStep = steps.find(s => s.id === betId);
+      if (!targetStep) return;
+
+      const parentRun = rollovers.find(r => String(r.id) === String(targetStep.rollover_id));
+
       steps = steps.map(step => step.id === betId ? { ...step, status: nextStatus } : step);
+
+      // Auto-generate next day challenge step if marked win
+      if (nextStatus === 'win' && parentRun) {
+        const existingNextStep = steps.find(s => String(s.rollover_id) === String(parentRun.id) && s.day_number === targetStep.day_number + 1);
+        if (!existingNextStep) {
+          const nextDay = targetStep.day_number + 1;
+          const nextStake = Math.floor(targetStep.win_amount);
+          const nextWinAmount = nextStake * parentRun.base_odds;
+          const newStepId = steps.length > 0 ? Math.max(...steps.map(s => s.id)) + 1 : 1;
+
+          steps.push({
+            id: newStepId,
+            rollover_id: parentRun.id,
+            day_number: nextDay,
+            stake: nextStake,
+            odds: parentRun.base_odds,
+            win_amount: nextWinAmount,
+            status: 'pending'
+          });
+        }
+      }
+
       localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
       fetchData();
     } catch (err) {
@@ -390,6 +393,11 @@ function App() {
                     <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-history"></i> My bets
                     </a>
+                    
+                    {/* ADMIN PANEL ENTRY TRIGGER */}
+                    <a href="#admin" onClick={(e) => { e.preventDefault(); setShowAdminModal(true); setShowProfileDropdown(false); }} style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                      <i className="fa-solid fa-lock"></i> Admin Panel
+                    </a>
 
                     <div className="dropdown-divider"></div>
 
@@ -446,6 +454,98 @@ function App() {
             </button>
           </nav>
         </header>
+
+        {/* ADMIN MODAL PANEL CONTAINER */}
+        {showAdminModal && (
+          <div className="admin-modal-overlay" onClick={() => setShowAdminModal(false)}>
+            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '20px', borderRadius: '10px', maxWidth: '500px', width: '90%', margin: '50px auto', maxHeight: '85vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+                <h3 style={{ margin: 0, color: '#1e293b' }}><i className="fa-solid fa-shield-halved"></i> Admin Control Center</h3>
+                <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}><i className="fa-solid fa-xmark"></i></button>
+              </div>
+
+              {!isAdminLoggedIn ? (
+                <form onSubmit={handleAdminLogin}>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage bet statuses and settings. (Default: 1234)</p>
+                  <div className="input-group" style={{ margin: '15px 0' }}>
+                    <label>Admin Password</label>
+                    <input type="password" placeholder="Enter password (e.g., 1234)" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                  </div>
+                  <button type="submit" className="create-slip-btn" style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Login to Admin</button>
+                </form>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '10px', borderRadius: '6px', marginBottom: '15px' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 'bold' }}><i className="fa-solid fa-circle-check"></i> Admin Authenticated</span>
+                    <button onClick={() => setIsAdminLoggedIn(false)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Logout</button>
+                  </div>
+
+                  <div style={{ marginBottom: '15px' }}>
+                    <button onClick={() => setShowChangePassSection(!showChangePassSection)} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                      <i className="fa-solid fa-key"></i> {showChangePassSection ? "Cancel Password Change" : "Change Admin Password"}
+                    </button>
+
+                    {showChangePassSection && (
+                      <form onSubmit={handleChangeAdminPassword} style={{ marginTop: '10px', padding: '10px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ marginBottom: '8px' }}>
+                          <label style={{ fontSize: '0.75rem' }}>Old Password</label>
+                          <input type="password" value={oldPassInput} onChange={(e) => setOldPassInput(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        </div>
+                        <div style={{ marginBottom: '8px' }}>
+                          <label style={{ fontSize: '0.75rem' }}>New Password</label>
+                          <input type="password" value={newPassInput} onChange={(e) => setNewPassInput(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        </div>
+                        <div style={{ marginBottom: '8px' }}>
+                          <label style={{ fontSize: '0.75rem' }}>Confirm New Password</label>
+                          <input type="password" value={confirmPassInput} onChange={(e) => setConfirmPassInput(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        </div>
+                        <button type="submit" style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Save New Password</button>
+                      </form>
+                    )}
+                  </div>
+
+                  <h4 style={{ color: '#1e293b', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>Manage Active Bets Status & Records</h4>
+                  {rolloverRuns.length === 0 ? (
+                    <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No active runs found in local storage database.</p>
+                  ) : (
+                    rolloverRuns.map(run => (
+                      <div key={run.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong>{run.title}</strong>
+                          <button onClick={() => handleDeleteRolloverRun(run.id)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '3px 6px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.75rem' }}><i className="fa-solid fa-trash"></i> Delete Slip</button>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: '#555', margin: '4px 0' }}>Market: {run.prediction}</p>
+                        
+                        <div style={{ marginTop: '8px' }}>
+                          {run.steps && run.steps.map(step => (
+                            <div key={step.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '6px', borderRadius: '4px', marginBottom: '4px', border: '1px solid #ddd', fontSize: '0.8rem' }}>
+                              <span>Day {step.day_number} | Stake: {parseFloat(step.stake).toLocaleString()} TZS</span>
+                              <button 
+                                onClick={() => handleToggleBetStatus(step.id, step.status)}
+                                style={{ 
+                                  padding: '3px 8px', 
+                                  borderRadius: '4px', 
+                                  border: 'none', 
+                                  cursor: 'pointer', 
+                                  fontWeight: 'bold',
+                                  backgroundColor: step.status === 'win' ? '#10b981' : step.status === 'loss' ? '#ef4444' : '#f59e0b',
+                                  color: 'white',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* MAIN BODY CONTENT SECTIONS */}
         <main className="content-container">
@@ -637,19 +737,27 @@ function App() {
                                     <td>@{parseFloat(step.odds).toFixed(2)}</td>
                                     <td>{parseFloat(step.win_amount).toLocaleString()} TZS</td>
                                     <td>
-                                      <button 
-                                        className={`btn ${step.status === 'win' ? 'btn-win' : step.status === 'loss' ? 'btn-loss' : 'btn-pending'}`}
-                                        onClick={() => handleToggleBetStatus(step.id, step.status)}
-                                        style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                      {/* Status tag view-only here: non-editable without Admin Panel authentication */}
+                                      <span 
+                                        style={{ 
+                                          padding: '4px 8px', 
+                                          borderRadius: '4px', 
+                                          fontWeight: 'bold',
+                                          display: 'inline-block',
+                                          backgroundColor: step.status === 'win' ? '#10b981' : step.status === 'loss' ? '#ef4444' : '#f59e0b',
+                                          color: 'white',
+                                          fontSize: '0.75rem'
+                                        }}
                                       >
-                                        {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'pending'}
-                                      </button>
+                                        {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
+                                      </span>
                                     </td>
                                   </tr>
                                 ))}
                               </tbody>
                             </table>
                           </div>
+                          <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px', textAlign: 'center' }}>* Note: Bet statuses are locked and can only be modified via the Admin Panel in your Profile menu.</p>
                         </div>
                       </div>
                     );
