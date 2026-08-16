@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 const STORAGE_KEY_ROLLOVERS = 'mxrollover_local_rollovers';
 const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
+const STORAGE_KEY_TEAM_ANALYSIS = 'mxrollover_team_analysis_logs';
 
 function App() {
   // Navigation & Tab Switch State
@@ -16,7 +17,6 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('userProfileTheme') || 'default');
   const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfileImage') || null);
   
-  // Fixed syntax error here
   const [bgImage, setBgImage] = useState(() => {
     const active = localStorage.getItem('useCustomBgActive') === 'true';
     return active ? localStorage.getItem('userProfileCustomBg') : null;
@@ -57,6 +57,16 @@ function App() {
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Team Analysis & Cycle Form States
+  const [analysisLeague, setAnalysisLeague] = useState('La Liga');
+  const [analysisTeamName, setAnalysisTeamName] = useState('Barcelona');
+  const [analysisDate, setAnalysisDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [analysisResult, setAnalysisResult] = useState('Win (2-1)');
+  const [analysisCorners, setAnalysisCorners] = useState('9');
+  const [analysisWinProb, setAnalysisWinProb] = useState('80');
+  const [analysisFormScore, setAnalysisFormScore] = useState('85');
+  const [teamLogs, setTeamLogs] = useState([]);
+
   // Load database entries on mount from Local Storage
   useEffect(() => {
     fetchData();
@@ -66,9 +76,11 @@ function App() {
     try {
       const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
       const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      const rawTeamLogs = localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS);
       
       const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
       const steps = rawSteps ? JSON.parse(rawSteps) : [];
+      const logs = rawTeamLogs ? JSON.parse(rawTeamLogs) : [];
 
       const runs = [...rollovers].reverse().map(run => {
         const runSteps = steps
@@ -78,6 +90,7 @@ function App() {
       });
 
       setRolloverRuns(runs);
+      setTeamLogs(logs);
       
       if (runs.length > 0) {
         const lastRun = runs[0];
@@ -145,7 +158,6 @@ function App() {
     }
   };
 
-  // Admin Password Update Handler
   const handleChangeAdminPassword = (e) => {
     e.preventDefault();
     const currentStoredPass = localStorage.getItem(STORAGE_KEY_ADMIN_PASS) || '1234';
@@ -170,7 +182,6 @@ function App() {
     setShowChangePassSection(false);
   };
 
-  // Admin Action: Delete Challenge / Slip
   const handleDeleteRolloverRun = (runId) => {
     if (!window.confirm("Are you sure you want to delete this challenge run from database?")) return;
     try {
@@ -271,7 +282,57 @@ function App() {
     }
   };
 
-  // Status Toggling restricted only inside Admin Panel
+  // Submit Daily Team Analysis Log
+  const handleSaveTeamAnalysis = (e) => {
+    e.preventDefault();
+    if (!analysisTeamName) {
+      alert("Please enter a team name.");
+      return;
+    }
+
+    const cornersVal = parseFloat(analysisCorners) || 0;
+    const cornerTip = cornersVal >= 8.5 ? "Over 8.5 Corners Expected" : "Under 8.5 Corners Expected";
+
+    const newLog = {
+      id: Date.now(),
+      league: analysisLeague,
+      team: analysisTeamName,
+      date: analysisDate,
+      result: analysisResult,
+      corners: cornersVal,
+      cornerTip: cornerTip,
+      winProb: parseInt(analysisWinProb) || 50,
+      formScore: parseInt(analysisFormScore) || 50
+    };
+
+    const updatedLogs = [newLog, ...teamLogs];
+    setTeamLogs(updatedLogs);
+    localStorage.setItem(STORAGE_KEY_TEAM_ANALYSIS, JSON.stringify(updatedLogs));
+    alert("Team analysis cycle recorded successfully!");
+  };
+
+  // Download All App Data as ZIP / JSON backup
+  const handleDownloadBackupZip = () => {
+    const backupData = {
+      rollovers: localStorage.getItem(STORAGE_KEY_ROLLOVERS),
+      steps: localStorage.getItem(STORAGE_KEY_STEPS),
+      teamAnalysis: localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS),
+      settings: {
+        username: username,
+        theme: theme
+      },
+      exportDate: new Date().toISOString()
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `Vozinha255_Backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const handleToggleBetStatus = (betId, currentStatus) => {
     if (!isAdminLoggedIn) {
       alert("Access Denied! You must log in to the Admin Panel to mark Win or Loss.");
@@ -391,10 +452,18 @@ function App() {
                     <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}>
                       <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
                     </a>
+                    <a href="#analysis" onClick={() => { setActiveTab('analysis'); setShowProfileDropdown(false); }}>
+                      <i className="fas fa-chart-pie"></i> Team Analysis Cycles
+                    </a>
                     <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
                       <i className="fas fa-history"></i> My bets
                     </a>
                     
+                    {/* BACKUP DOWNLOAD BUTTON */}
+                    <a href="#backup" onClick={(e) => { e.preventDefault(); handleDownloadBackupZip(); setShowProfileDropdown(false); }} style={{ color: '#10b981', fontWeight: 'bold' }}>
+                      <i className="fa-solid fa-download"></i> Download Data Backup (.json)
+                    </a>
+
                     {/* ADMIN PANEL ENTRY TRIGGER */}
                     <a href="#admin" onClick={(e) => { e.preventDefault(); setShowAdminModal(true); setShowProfileDropdown(false); }} style={{ color: '#e74c3c', fontWeight: 'bold' }}>
                       <i className="fa-solid fa-lock"></i> Admin Panel
@@ -449,6 +518,9 @@ function App() {
             </button>
             <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}>
               <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
+            </button>
+            <button className={`nav-btn ${activeTab === 'analysis' ? 'active' : ''}`} onClick={() => setActiveTab('analysis')}>
+              <i className="fas fa-chart-pie"></i> Analysis
             </button>
             <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
               <i className="fa-solid fa-clock-rotate-left"></i> My bets
@@ -738,7 +810,6 @@ function App() {
                                     <td>@{parseFloat(step.odds).toFixed(2)}</td>
                                     <td>{parseFloat(step.win_amount).toLocaleString()} TZS</td>
                                     <td>
-                                      {/* View-only status indicator */}
                                       <span 
                                         style={{ 
                                           padding: '4px 8px', 
@@ -768,7 +839,108 @@ function App() {
             </section>
           )}
 
-          {/* TAB 3: My Bets (History Archive) */}
+          {/* TAB 3: Team Analysis & Cycles (NEW FEATURE) */}
+          {activeTab === 'analysis' && (
+            <section id="analysis-view" className="page-view active" style={{ display: 'block' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 style={{ color: '#1e293b' }}><i className="fas fa-chart-pie" style={{ color: '#3b82f6' }}></i> Team Performance & Cycles</h2>
+                <button onClick={handleDownloadBackupZip} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <i className="fa-solid fa-download"></i> Save Data Backup
+                </button>
+              </div>
+
+              {/* Upload & Log Form Card */}
+              <div style={{ background: '#ffffff', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '12px' }}>Upload Daily Team Statistics (EPL, La Liga, Bundesliga)</h3>
+                <form onSubmit={handleSaveTeamAnalysis}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>League Focus</label>
+                      <select value={analysisLeague} onChange={(e) => setAnalysisLeague(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                        <option value="La Liga">🇪🇸 La Liga (e.g. Barcelona, Real Madrid)</option>
+                        <option value="EPL">🇬🇧 Premier League (EPL)</option>
+                        <option value="Bundesliga">🇩🇪 Bundesliga</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Team Name</label>
+                      <input type="text" placeholder="e.g. Barcelona" value={analysisTeamName} onChange={(e) => setAnalysisTeamName(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Match Date</label>
+                      <input type="date" value={analysisDate} onChange={(e) => setAnalysisDate(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Match Result / Score</label>
+                      <input type="text" placeholder="e.g. Won 3-1" value={analysisResult} onChange={(e) => setAnalysisResult(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Corners Count</label>
+                      <input type="number" placeholder="e.g. 9" value={analysisCorners} onChange={(e) => setAnalysisCorners(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Next Win Probability (%)</label>
+                      <input type="number" min="0" max="100" value={analysisWinProb} onChange={(e) => setAnalysisWinProb(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Performance Form Score (%)</label>
+                      <input type="number" min="0" max="100" value={analysisFormScore} onChange={(e) => setAnalysisFormScore(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                    </div>
+                  </div>
+
+                  <button type="submit" style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    <i className="fas fa-sync-alt"></i> Generate Performance Cycle & Insights
+                  </button>
+                </form>
+              </div>
+
+              {/* Display Logged Team Cycles with Circular Progress Indicators */}
+              <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '10px' }}>Recorded Teams & Analysis Cycles</h3>
+              {teamLogs.length === 0 ? (
+                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', background: '#fff', borderRadius: '8px' }}>No team analysis cycles uploaded yet. Add your first team above!</p>
+              ) : (
+                teamLogs.map(log => (
+                  <div key={log.id} style={{ background: '#fff', borderRadius: '10px', padding: '15px', marginBottom: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #3b82f6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{log.team} <span style={{ fontSize: '0.75rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px' }}>{log.league}</span></strong>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{log.date}</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: '#475569', margin: '4px 0' }}><strong>Result:</strong> {log.result} | <strong>Corners:</strong> {log.corners} ({log.cornerTip})</p>
+                    
+                    {/* Visual Cycle Progress Rings / Bars */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>Win Probability</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>{log.winProb}%</div>
+                        <div style={{ width: '100%', background: '#e2e8f0', height: '6px', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${log.winProb}%`, background: '#10b981', height: '100%' }}></div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>Form Index</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b82f6' }}>{log.formScore}%</div>
+                        <div style={{ width: '100%', background: '#e2e8f0', height: '6px', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${log.formScore}%`, background: '#3b82f6', height: '100%' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '10px', background: '#eff6ff', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', color: '#1e40af' }}>
+                      <i className="fa-solid fa-lightbulb"></i> <strong>AI Prediction Tip:</strong> Based on current cycle performance, recommended corner market is <strong>{log.cornerTip}</strong> with high confidence for next fixture.
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
+          )}
+
+          {/* TAB 4: My Bets (History Archive) */}
           {activeTab === 'transactions' && (
             <section id="transactions-view" className="page-view active" style={{ display: 'block' }}>
               <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History</h2>
