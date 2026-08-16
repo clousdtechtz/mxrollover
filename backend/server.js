@@ -1,34 +1,55 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
 const cors = require('cors');
 const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. Database Connection Pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || 'defaultdb',
-  port: process.env.DB_PORT || 27609,
-  ssl: { rejectUnauthorized: false },
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const DB_FILE = path.join(__dirname, 'db.json');
 
-// 2. GET ALL ROLLOVERS (Fetches parent info + all daily steps)
+// Helper: Read database from local JSON file
+async function readDB() {
+  try {
+    const data = await fs.readFile(DB_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    // Return default empty structure if file doesn't exist yet
+    return { rollovers: [], bet_steps: [] };
+  }
+}
+
+// Helper: Write database to local JSON file
+async function writeDB(data) {
+  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Initialize local DB file on startup if missing
+async function initDB() {
+  try {
+    await fs.access(DB_FILE);
+  } catch {
+    await writeDB({ rollovers: [], bet_steps: [] });
+  }
+}
+initDB();
+
+// 1. GET ALL ROLLOVERS (Fetches parent info + all daily steps)
 app.get('/api/rollovers', async (req, res) => {
   try {
-    const [runs] = await pool.query('SELECT * FROM rollovers ORDER BY id DESC');
+    const db = await readDB();
+    const runs = [...db.rollovers].reverse(); // Equivalent to ORDER BY id DESC
+    
     for (let run of runs) {
-      const [steps] = await pool.query('SELECT * FROM bet_steps WHERE rollover_id = ? ORDER BY day_number ASC', [run.id]);
+      const steps = db.bet_steps
+        .filter(step => step.rollover_id === run.id)
+        .sort((a, b) => a.day_number - b.day_number);
       run.steps = steps;
     }
+    
     res.json(runs);
   } catch (err) {
     console.error(err);
@@ -36,36 +57,63 @@ app.get('/api/rollovers', async (req, res) => {
   }
 });
 
-// 3. POST NEW SLIP (Creates parent challenge and Day 1 step row)
+// 2. POST NEW SLIP (Creates parent challenge and Day 1 step row)
 app.post('/api/rollovers', async (req, res) => {
   const { title, target_goal, initial_stake, base_odds, match_id, prediction } = req.body;
   try {
-    const [result] = await pool.query(
-      'INSERT INTO rollovers (title, target_goal, initial_stake, base_odds, match_id, prediction) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, target_goal, initial_stake, base_odds, match_id, prediction]
-    );
+    const db = await readDB();
     
-    const rolloverId = result.insertId;
+    const newRolloverId = db.rollovers.length > 0 ? Math.max(...db.rollovers.map(r => r.id)) + 1 : 1;
+    
+    const newRollover = {
+      id: newRolloverId,
+      title,
+      target_goal,
+      initial_stake,
+      base_odds,
+      match_id,
+      prediction
+    };
+    db.rollovers.push(newRollover);
+
     const winAmount = initial_stake * base_odds;
+    const newStepId = db.bet_steps.length > 0 ? Math.max(...db.bet_steps.map(s => s.id)) + 1 : 1;
 
-    await pool.query(
-      'INSERT INTO bet_steps (rollover_id, day_number, stake, odds, win_amount, status) VALUES (?, 1, ?, ?, ?, "pending")',
-      [rolloverId, initial_stake, base_odds, winAmount]
-    );
+    const newStep = {
+      id: newStepId,
+      rollover_id: newRolloverId,
+      day_number: 1,
+      stake: initial_stake,
+      odds: base_odds,
+      win_amount: winAmount,
+      status: 'pending'
+    };
+    db.bet_steps.push(newStep);
 
-    res.status(201).json({ success: true, id: rolloverId, message: "Betslip successfully saved!" });
+    await writeDB(db);
+
+    res.status(201).json({ success: true, id: newRolloverId, message: "Betslip successfully saved!" });
   } catch (err) {
-    console.error("SQL Insertion Error:", err);
+    console.error("Local Storage Insertion Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 4. PUT UPDATE STEP STATUS (Manual tracking override toggle)
+// 3. PUT UPDATE STEP STATUS (Manual tracking override toggle)
 app.put('/api/bets/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   try {
-    await pool.query('UPDATE bet_steps SET status = ? WHERE id = ?', [status, id]);
+    const db = await readDB();
+    const step = db.bet_steps.find(s => s.id === parseInt(id));
+    
+    if (!step) {
+      return res.status(404).json({ error: "Bet step not found" });
+    }
+    
+    step.status = status;
+    await writeDB(db);
+    
     res.json({ success: true, message: "Status updated successfully" });
   } catch (err) {
     console.error(err);
@@ -73,21 +121,20 @@ app.put('/api/bets/:id', async (req, res) => {
   }
 });
 
-// 5. AUTOMATED LIVE SCORE SETTLEMENT (Expanded Evaluation Engine)
+// 4. AUTOMATED LIVE SCORE SETTLEMENT (Expanded Evaluation Engine)
 app.post('/api/settle-bets', async (req, res) => {
   try {
-    const [activeRuns] = await pool.query('SELECT * FROM rollovers WHERE match_id IS NOT NULL');
+    const db = await readDB();
+    const activeRuns = db.rollovers.filter(r => r.match_id !== null && r.match_id !== undefined && r.match_id !== '');
+    
     if (activeRuns.length === 0) return res.json({ message: "No active targets." });
 
     let updatedCount = 0;
 
     for (let run of activeRuns) {
-      const [pendingSteps] = await pool.query(
-        'SELECT * FROM bet_steps WHERE rollover_id = ? AND status = "pending" LIMIT 1', 
-        [run.id]
-      );
-
+      const pendingSteps = db.bet_steps.filter(s => s.rollover_id === run.id && s.status === 'pending');
       if (pendingSteps.length === 0) continue;
+      
       const currentStep = pendingSteps[0];
 
       const options = {
@@ -132,7 +179,7 @@ app.post('/api/settle-bets', async (req, res) => {
         if (rule === 'Double Chance 12' && homeGoals !== awayGoals) isWin = true;
 
         const finalStatus = isWin ? 'win' : 'loss';
-        await pool.query('UPDATE bet_steps SET status = ? WHERE id = ?', [finalStatus, currentStep.id]);
+        currentStep.status = finalStatus;
         updatedCount++;
 
         if (isWin) {
@@ -140,13 +187,22 @@ app.post('/api/settle-bets', async (req, res) => {
           const nextStake = Math.floor(currentStep.win_amount);
           const nextWinAmount = nextStake * run.base_odds;
 
-          await pool.query(
-            'INSERT INTO bet_steps (rollover_id, day_number, stake, odds, win_amount, status) VALUES (?, ?, ?, ?, ?, "pending")',
-            [run.id, nextDay, nextStake, run.base_odds, nextWinAmount]
-          );
+          const newStepId = db.bet_steps.length > 0 ? Math.max(...db.bet_steps.map(s => s.id)) + 1 : 1;
+          const nextStep = {
+            id: newStepId,
+            rollover_id: run.id,
+            day_number: nextDay,
+            stake: nextStake,
+            odds: run.base_odds,
+            win_amount: nextWinAmount,
+            status: 'pending'
+          };
+          db.bet_steps.push(nextStep);
         }
       }
     }
+    
+    await writeDB(db);
     res.json({ success: true, message: `Updated ${updatedCount} bet steps.` });
   } catch (err) {
     console.error(err);
@@ -155,4 +211,4 @@ app.post('/api/settle-bets', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server live on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server live on port ${PORT} using local JSON storage`));
