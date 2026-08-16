@@ -335,7 +335,7 @@ function App() {
           <div className="header-content">
             <div className="header-left">
               <h1>
-                <i className="fa-regular fa-circle-dot"></i> 
+                <i className="fa-solid fa-layer-group"></i> 
                 𝐃𝐫𝐞𝐚𝐦𝐬 𝐜𝐨𝐦𝐞 𝐭𝐫𝐮𝐞
               </h1>
               <p style={{ marginTop: '5px', color: 'blue', opacity: 1, fontSize: '0.9rem' }}>
