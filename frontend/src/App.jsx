@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Connected directly to your live Render backend URL!
-const API_URL = 'https://mxrollover.onrender.com'; 
+// Local storage storage key constants
+const STORAGE_KEY_ROLLOVERS = 'mxrollover_local_rollovers';
+const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 
 function App() {
   // Navigation & Tab Switch State
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Customization & Settings States (rebuilding your localStorage caching logic)
+  // Customization & Settings States
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSettingsAccordion, setShowSettingsAccordion] = useState(false);
   const [username, setUsername] = useState(() => localStorage.getItem('userProfileUsername') || 'Savings User');
@@ -22,7 +23,6 @@ function App() {
   // Dashboard Accordion dropdown states
   const [openCreateBetslip, setOpenCreateBetslip] = useState(true);
   const [openLiveScore, setOpenLiveScore] = useState(false);
-  const [openBetway, setOpenBetway] = useState(false);
 
   // Accordion state to track which Active Bet slip card is expanded/clicked
   const [expandedRunId, setExpandedRunId] = useState(null);
@@ -40,24 +40,37 @@ function App() {
   const [awayTeam, setAwayTeam] = useState('');
   const [matchOdd, setMatchOdd] = useState('');
 
-  // Active runs fetched from database
+  // Active runs loaded from local storage
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiChecking, setApiChecking] = useState(false);
 
-  // Load database entries on mount
+  // Load database entries on mount from Local Storage
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = () => {
     try {
-      const res = await axios.get(`${API_URL}/api/rollovers`);
-      setRolloverRuns(res.data);
+      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
+      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
       
-      // Automatic Rollover Stake Calculation from backend payload
-      if (res.data.length > 0) {
-        const lastRun = res.data[0];
+      const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
+      const steps = rawSteps ? JSON.parse(rawSteps) : [];
+
+      // Combine parent rollovers with their related daily steps sorted descending by id
+      const runs = [...rollovers].reverse().map(run => {
+        const runSteps = steps
+          .filter(step => String(step.rollover_id) === String(run.id))
+          .sort((a, b) => a.day_number - b.day_number);
+        return { ...run, steps: runSteps };
+      });
+
+      setRolloverRuns(runs);
+      
+      // Automatic Rollover Stake Calculation from local storage payload
+      if (runs.length > 0) {
+        const lastRun = runs[0];
         const wonSteps = lastRun.steps ? lastRun.steps.filter(s => s.status === 'win') : [];
         if (wonSteps.length > 0) {
           const lastWonPayout = Math.floor(wonSteps[wonSteps.length - 1].win_amount);
@@ -66,20 +79,104 @@ function App() {
       }
       setLoading(false);
     } catch (err) {
-      console.error("Backend offline. Check Render server status.", err);
+      console.error("Local storage load error.", err);
       setLoading(false);
     }
   };
 
-  // Trigger Render Backend to auto check scores via RapidAPI
+  // Trigger Local API/Score Check Settlement simulation via RapidAPI or fallback logic
   const handleTriggerApiSettlement = async () => {
     setApiChecking(true);
     try {
-      const res = await axios.post(`${API_URL}/api/settle-bets`);
-      alert(res.data.message || "Settlement process finished!");
+      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
+      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      
+      const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
+      let steps = rawSteps ? JSON.parse(rawSteps) : [];
+      
+      const activeRuns = rollovers.filter(r => r.match_id !== null && r.match_id !== undefined && r.match_id !== '');
+      if (activeRuns.length === 0) {
+        alert("No active targets with match IDs found.");
+        setApiChecking(false);
+        return;
+      }
+
+      let updatedCount = 0;
+
+      for (let run of activeRuns) {
+        const pendingSteps = steps.filter(s => String(s.rollover_id) === String(run.id) && s.status === 'pending');
+        if (pendingSteps.length === 0) continue;
+        const currentStep = pendingSteps[0];
+
+        try {
+          const options = {
+            method: 'GET',
+            url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures',
+            params: { id: run.match_id },
+            headers: {
+              'X-RapidAPI-Key': process.env.REACT_APP_RAPIDAPI_KEY || '',
+              'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+            }
+          };
+
+          const apiResponse = await axios.request(options);
+          const fixtureData = apiResponse.data.response;
+          if (!fixtureData || fixtureData.length === 0) continue;
+
+          const fixture = fixtureData[0];
+          const matchStatus = fixture.fixture.status.short;
+          
+          if (matchStatus === 'FT') {
+            const homeGoals = fixture.goals.home;
+            const awayGoals = fixture.goals.away;
+            const totalGoals = homeGoals + awayGoals;
+            
+            let isWin = false;
+            const rule = run.prediction;
+
+            if (rule === 'Over 1.5' && totalGoals > 1.5) isWin = true;
+            if (rule === 'Over 2.5' && totalGoals > 2.5) isWin = true;
+            if (rule === 'Under 3.5' && totalGoals < 3.5) isWin = true;
+            if (rule === 'Under 4.5' && totalGoals < 4.5) isWin = true;
+            if (rule === 'Home Win' && homeGoals > awayGoals) isWin = true;
+            if (rule === 'Away Win' && awayGoals > homeGoals) isWin = true;
+            if (rule === 'BTTS Yes' && homeGoals > 0 && awayGoals > 0) isWin = true;
+            if (rule === 'BTTS No' && (homeGoals === 0 || awayGoals === 0)) isWin = true;
+            if (rule === 'Double Chance 1X' && homeGoals >= awayGoals) isWin = true;
+            if (rule === 'Double Chance X2' && awayGoals >= homeGoals) isWin = true;
+            if (rule === 'Double Chance 12' && homeGoals !== awayGoals) isWin = true;
+
+            const finalStatus = isWin ? 'win' : 'loss';
+            steps = steps.map(s => s.id === currentStep.id ? { ...s, status: finalStatus } : s);
+            updatedCount++;
+
+            if (isWin) {
+              const nextDay = currentStep.day_number + 1;
+              const nextStake = Math.floor(currentStep.win_amount);
+              const nextWinAmount = nextStake * run.base_odds;
+              const newStepId = steps.length > 0 ? Math.max(...steps.map(s => s.id)) + 1 : 1;
+
+              steps.push({
+                id: newStepId,
+                rollover_id: run.id,
+                day_number: nextDay,
+                stake: nextStake,
+                odds: run.base_odds,
+                win_amount: nextWinAmount,
+                status: 'pending'
+              });
+            }
+          }
+        } catch (apiErr) {
+          console.warn("External API fetch skipped/failed, keeping local state intact.", apiErr);
+        }
+      }
+
+      localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
+      alert(`Settlement process finished! Updated ${updatedCount} bet steps.`);
       fetchData();
     } catch (err) {
-      alert("Failed to run API settlement. Check Render logs.");
+      alert("Failed to run local settlement sync.");
     } finally {
       setApiChecking(false);
     }
@@ -142,7 +239,7 @@ function App() {
     setMatchOdd('');
   };
 
-  const handleGenerateActiveSlip = async (e) => {
+  const handleGenerateActiveSlip = (e) => {
     e.preventDefault();
     if (stagedMatches.length === 0) {
       alert("Please add at least one match to your coupon using the '+' button first.");
@@ -154,15 +251,41 @@ function App() {
     const finalStake = parseFloat(baseStake) || 1000;
 
     try {
-      // Sent directly with numerical fallbacks to prevent "Failed to save the slip" error
-      await axios.post(`${API_URL}/api/rollovers`, {
+      const rawRollovers = localStorage.getItem(STORAGE_KEY_ROLLOVERS);
+      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      
+      const rollovers = rawRollovers ? JSON.parse(rawRollovers) : [];
+      const steps = rawSteps ? JSON.parse(rawSteps) : [];
+
+      const newRolloverId = rollovers.length > 0 ? Math.max(...rollovers.map(r => r.id)) + 1 : 1;
+      
+      const newRollover = {
+        id: newRolloverId,
         title: `${currentChallengeDate} Run`,
-        target_goal: 10, // Pass a standard fallback number in case the database column expects an integer day limit
+        target_goal: 10,
         initial_stake: finalStake,
         base_odds: parseFloat(accumulatedOdds.toFixed(2)),
         match_id: matchIdInput || null,
         prediction: prediction
-      });
+      };
+      rollovers.push(newRollover);
+
+      const winAmount = finalStake * parseFloat(accumulatedOdds.toFixed(2));
+      const newStepId = steps.length > 0 ? Math.max(...steps.map(s => s.id)) + 1 : 1;
+
+      const newStep = {
+        id: newStepId,
+        rollover_id: newRolloverId,
+        day_number: 1,
+        stake: finalStake,
+        odds: parseFloat(accumulatedOdds.toFixed(2)),
+        win_amount: winAmount,
+        status: 'pending'
+      };
+      steps.push(newStep);
+
+      localStorage.setItem(STORAGE_KEY_ROLLOVERS, JSON.stringify(rollovers));
+      localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
       
       setStagedMatches([]);
       setAccumulatedOdds(1.00);
@@ -171,19 +294,23 @@ function App() {
       fetchData();
       
       setActiveTab('goal');
-      alert(`Coupon initialized and added to Render database successfully!`);
+      alert(`Coupon initialized and added to Local Storage successfully!`);
     } catch (err) {
-      alert("Failed to save the slip. Check database or Render API server.");
+      alert("Failed to save the slip to local storage.");
     }
   };
 
-  const handleToggleBetStatus = async (betId, currentStatus) => {
+  const handleToggleBetStatus = (betId, currentStatus) => {
     let nextStatus = 'pending';
     if (currentStatus === 'pending') nextStatus = 'win';
     else if (currentStatus === 'win') nextStatus = 'loss';
 
     try {
-      await axios.put(`${API_URL}/api/bets/${betId}`, { status: nextStatus });
+      const rawSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+      let steps = rawSteps ? JSON.parse(rawSteps) : [];
+      
+      steps = steps.map(step => step.id === betId ? { ...step, status: nextStatus } : step);
+      localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
       fetchData();
     } catch (err) {
       console.error("Status update error", err);
@@ -420,26 +547,6 @@ function App() {
                 </div>
               </div>
 
-              {/* ACCORDION DROPDOWN 3: EN.BETWAY.CO.TZ */}
-              <div className={`history-dropdown-card ${openBetway ? 'open' : ''}`} style={{ marginTop: '15px' }}>
-                <div className="history-header-toggle" onClick={() => setOpenBetway(!openBetway)} style={{ backgroundColor: '#f1f5f9' }}>
-                  <p className="history-title-paragraph" style={{ fontWeight: 'bold' }}>
-                    <i className="fa-solid fa-bolt" style={{ color: '#2ecc71', marginRight: '6px' }}></i> Betway Tanzania Portal Hub
-                  </p>
-                  <i className="fas fa-chevron-down toggle-arrow"></i>
-                </div>
-                <div className="history-content-collapsible" style={{ display: openBetway ? 'block' : 'none', padding: '10px' }}>
-                  <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                    <a href="https://en.betway.co.tz/" target="_blank" rel="noreferrer" className="settle-action-btn" style={{ textDecoration: 'none', display: 'inline-block', backgroundColor: '#000' }}>
-                      🚀 Click to Open Betway App Directly
-                    </a>
-                  </div>
-                  <div className="iframe-display-container">
-                    <iframe src="https://en.betway.co.tz/" title="Betway Tanzania Embedded Frame"></iframe>
-                  </div>
-                </div>
-              </div>
-
               {/* Manual Settlement Block */}
               <div className="creator-card" style={{ marginTop: '20px' }}>
                 <h3><i className="fa-solid fa-gavel"></i> Open Slip Settlement</h3>
@@ -467,14 +574,13 @@ function App() {
               <h2 style={{ marginBottom: '15px', color: '#333' }}>Active Bets</h2>
               <div id="active-bets-target-list">
                 {loading ? (
-                  <p style={{ textAlign: 'center', color: '#64748b' }}>Syncing operations with Render server...</p>
+                  <p style={{ textAlign: 'center', color: '#64748b' }}>Syncing local operations...</p>
                 ) : rolloverRuns.length === 0 ? (
                   <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No current active operations running.</p>
                 ) : (
                   rolloverRuns.map((run) => {
                     const isExpanded = expandedRunId === run.id;
                     
-                    // Fallback generator to populate a default row view if server database returns empty step rows
                     const displaySteps = run.steps && run.steps.length > 0 ? run.steps : [
                       {
                         id: `fallback-${run.id}`,
@@ -507,19 +613,17 @@ function App() {
                           </p>
                         </div>
                         
-                        {/* If it's NOT clicked/expanded, only show simple Stake and Odds overview labels */}
                         {!isExpanded && (
                           <div style={{ padding: '0 12px 12px 12px', display: 'flex', gap: '20px', fontSize: '0.85rem', color: '#475569' }}>
-                            <span>export <strong>Stake:</strong> {parseFloat(run.initial_stake || 1000).toLocaleString()} TZS</span>
+                            <span><strong>Stake:</strong> {parseFloat(run.initial_stake || 1000).toLocaleString()} TZS</span>
                             <span><strong>Total Odds:</strong> @{parseFloat(run.base_odds || 1.00).toFixed(2)}</span>
                           </div>
                         )}
 
-                        {/* When clicked, open up fully to show table details, matches, selections, and status buttons */}
                         <div 
                           className="history-content-collapsible" 
                           style={{ display: isExpanded ? 'block' : 'none', padding: '10px', backgroundColor: '#ffffff' }}
-                          onClick={(e) => e.stopPropagation()} // Prevents collapsing when clicking inside table rows
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <div className="table-scroll-wrapper">
                             <table className="history-data-table">
@@ -573,7 +677,6 @@ function App() {
                   rolloverRuns.map(run => {
                     const settledSteps = run.steps ? run.steps.filter(s => s.status === 'win' || s.status === 'loss') : [];
                     
-                    // Dynamically set correct icon mapping so pending games show an hourglass instead of checking green ticks
                     let statusIcon = '⏳'; 
                     if (settledSteps.some(s => s.status === 'loss')) {
                       statusIcon = '❌';
