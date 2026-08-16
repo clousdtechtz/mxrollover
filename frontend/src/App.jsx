@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Local storage storage key constants
+// Local storage key constants
 const STORAGE_KEY_ROLLOVERS = 'mxrollover_local_rollovers';
 const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
@@ -15,8 +15,10 @@ function App() {
   const [username, setUsername] = useState(() => localStorage.getItem('userProfileUsername') || 'Savings User');
   const [theme, setTheme] = useState(() => localStorage.getItem('userProfileTheme') || 'default');
   const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfileImage') || null);
+  
+  // Fixed syntax error here
   const [bgImage, setBgImage] = useState(() => {
-    const active = localStorage.getItem('useCustomBgActive'] === 'true';
+    const active = localStorage.getItem('useCustomBgActive') === 'true';
     return active ? localStorage.getItem('userProfileCustomBg') : null;
   });
 
@@ -269,7 +271,7 @@ function App() {
     }
   };
 
-  // Status Toggling restricted only inside Admin Panel now
+  // Status Toggling restricted only inside Admin Panel
   const handleToggleBetStatus = (betId, currentStatus) => {
     if (!isAdminLoggedIn) {
       alert("Access Denied! You must log in to the Admin Panel to mark Win or Loss.");
@@ -294,7 +296,6 @@ function App() {
 
       steps = steps.map(step => step.id === betId ? { ...step, status: nextStatus } : step);
 
-      // Auto-generate next day challenge step if marked win
       if (nextStatus === 'win' && parentRun) {
         const existingNextStep = steps.find(s => String(s.rollover_id) === String(parentRun.id) && s.day_number === targetStep.day_number + 1);
         if (!existingNextStep) {
@@ -737,7 +738,7 @@ function App() {
                                     <td>@{parseFloat(step.odds).toFixed(2)}</td>
                                     <td>{parseFloat(step.win_amount).toLocaleString()} TZS</td>
                                     <td>
-                                      {/* Status tag view-only here: non-editable without Admin Panel authentication */}
+                                      {/* View-only status indicator */}
                                       <span 
                                         style={{ 
                                           padding: '4px 8px', 
