@@ -1230,4 +1230,4 @@ function App() {
   );
 }
 
-export default App[span_0](start_span)[span_0](end_span);
+export default App;
