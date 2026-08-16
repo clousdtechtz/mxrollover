@@ -136,7 +136,6 @@ function App() {
   const [adminEditAwayGoals, setAdminEditAwayGoals] = useState('0');
   const [adminEditHomeCorners, setAdminEditHomeCorners] = useState('6');
   const [adminEditAwayCorners, setAdminEditAwayCorners] = useState('4');
-  const [adminEditForm, setAdminEditForm] = useState('W,W,D,W,W');
 
   useEffect(() => {
     fetchData();
@@ -221,7 +220,7 @@ function App() {
     }
   };
 
-  // Handle Admin Saving Match Details (Home vs Away, Results 0-9, Corners 0-30, Dual-Fixture rule)
+  // Handle Admin Saving Match Details with complete standard football table calculations (MP, W, D, L, GF, GA, GD, Pts, Form, Rankings)
   const handleAdminSaveTeamDetails = (e) => {
     e.preventDefault();
     if (!isAdminLoggedIn) {
@@ -238,29 +237,114 @@ function App() {
     const leagueList = updatedData[adminEditLeague];
     if (!leagueList) return;
 
-    // Update Home Team metrics based on selected dropdown match parameters
-    const teamIndex = leagueList.findIndex(t => t.name.toLowerCase() === adminEditTeamName.toLowerCase());
-    const awayTeamIndex = leagueList.findIndex(t => t.name.toLowerCase() === adminEditAwayTeamName.toLowerCase());
+    const homeGoals = parseInt(adminEditHomeGoals, 10) || 0;
+    const awayGoals = parseInt(adminEditAwayGoals, 10) || 0;
+    const homeCorners = parseFloat(adminEditHomeCorners) || 0;
+    const awayCorners = parseFloat(adminEditAwayCorners) || 0;
 
-    if (teamIndex !== -1) {
-      leagueList[teamIndex] = {
-        ...leagueList[teamIndex],
-        cornersAvg: parseFloat(adminEditHomeCorners) || leagueList[teamIndex].cornersAvg,
-        goalsScoredAvg: parseFloat(adminEditHomeGoals) || leagueList[teamIndex].goalsScoredAvg,
-      };
+    const homeIndex = leagueList.findIndex(t => t.name.toLowerCase() === adminEditTeamName.toLowerCase());
+    const awayIndex = leagueList.findIndex(t => t.name.toLowerCase() === adminEditAwayTeamName.toLowerCase());
+
+    if (homeIndex === -1 || awayIndex === -1) {
+      alert("Could not find selected teams in the league database.");
+      return;
     }
 
-    if (awayTeamIndex !== -1) {
-      leagueList[awayTeamIndex] = {
-        ...leagueList[awayTeamIndex],
-        cornersAvg: parseFloat(adminEditAwayCorners) || leagueList[awayTeamIndex].cornersAvg,
-        goalsScoredAvg: parseFloat(adminEditAwayGoals) || leagueList[awayTeamIndex].goalsScoredAvg,
-      };
+    const homeTeamObj = leagueList[homeIndex];
+    const awayTeamObj = leagueList[awayIndex];
+
+    // Determine match outcome for Home and Away
+    let homeWinInc = 0, homeDrawInc = 0, homeLossInc = 0, homePtsInc = 0, homeFormRes = 'L';
+    let awayWinInc = 0, awayDrawInc = 0, awayLossInc = 0, awayPtsInc = 0, awayFormRes = 'L';
+
+    if (homeGoals > awayGoals) {
+      homeWinInc = 1; homePtsInc = 3; homeFormRes = 'W';
+      awayLossInc = 1; awayFormRes = 'L';
+    } else if (homeGoals < awayGoals) {
+      awayWinInc = 1; awayPtsInc = 3; awayFormRes = 'W';
+      homeLossInc = 1; homeFormRes = 'L';
+    } else {
+      homeDrawInc = 1; homePtsInc = 1; homeFormRes = 'D';
+      awayDrawInc = 1; awayPtsInc = 1; awayFormRes = 'D';
     }
 
+    // Update Home Team stats
+    const newHomeMp = homeTeamObj.mp + 1;
+    const newHomeW = homeTeamObj.w + homeWinInc;
+    const newHomeD = homeTeamObj.d + homeDrawInc;
+    const newHomeL = homeTeamObj.l + homeLossInc;
+    const newHomeGf = homeTeamObj.gf + homeGoals;
+    const newHomeGa = homeTeamObj.ga + awayGoals;
+    const newHomeGd = newHomeGf - newHomeGa;
+    const newHomePts = homeTeamObj.pts + homePtsInc;
+    const newHomeCornersAvg = parseFloat(((homeTeamObj.cornersAvg * homeTeamObj.mp + homeCorners) / newHomeMp).toFixed(1));
+    const newHomeGoalsScoredAvg = parseFloat((newHomeGf / newHomeMp).toFixed(2));
+    const newHomeGoalsConcededAvg = parseFloat((newHomeGa / newHomeMp).toFixed(2));
+    const newHomeForm = [...(homeTeamObj.recentForm || []), homeFormRes].slice(-5);
+
+    leagueList[homeIndex] = {
+      ...homeTeamObj,
+      mp: newHomeMp,
+      w: newHomeW,
+      d: newHomeD,
+      l: newHomeL,
+      gf: newHomeGf,
+      ga: newHomeGa,
+      gd: newHomeGd,
+      pts: newHomePts,
+      cornersAvg: newHomeCornersAvg,
+      goalsScoredAvg: newHomeGoalsScoredAvg,
+      goalsConcededAvg: newHomeGoalsConcededAvg,
+      recentForm: newHomeForm
+    };
+
+    // Update Away Team stats
+    const newAwayMp = awayTeamObj.mp + 1;
+    const newAwayW = awayTeamObj.w + awayWinInc;
+    const newAwayD = awayTeamObj.d + awayDrawInc;
+    const newAwayL = awayTeamObj.l + awayLossInc;
+    const newAwayGf = awayTeamObj.gf + awayGoals;
+    const newAwayGa = awayTeamObj.ga + homeGoals;
+    const newAwayGd = newAwayGf - newAwayGa;
+    const newAwayPts = awayTeamObj.pts + awayPtsInc;
+    const newAwayCornersAvg = parseFloat(((awayTeamObj.cornersAvg * awayTeamObj.mp + awayCorners) / newAwayMp).toFixed(1));
+    const newAwayGoalsScoredAvg = parseFloat((newAwayGf / newAwayMp).toFixed(2));
+    const newAwayGoalsConcededAvg = parseFloat((newAwayGa / newAwayMp).toFixed(2));
+    const newAwayForm = [...(awayTeamObj.recentForm || []), awayFormRes].slice(-5);
+
+    leagueList[awayIndex] = {
+      ...awayTeamObj,
+      mp: newAwayMp,
+      w: newAwayW,
+      d: newAwayD,
+      l: newAwayL,
+      gf: newAwayGf,
+      ga: newAwayGa,
+      gd: newAwayGd,
+      pts: newAwayPts,
+      cornersAvg: newAwayCornersAvg,
+      goalsScoredAvg: newAwayGoalsScoredAvg,
+      goalsConcededAvg: newAwayGoalsConcededAvg,
+      recentForm: newAwayForm
+    };
+
+    // Sort league table using standard football rules: Pts DESC -> Goal Difference (GD) DESC -> Goals For (GF) DESC -> Alphabetical Name
+    leagueList.sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      if (b.gd !== a.gd) return b.gd - a.gd;
+      if (b.gf !== a.gf) return b.gf - a.gf;
+      return a.name.localeCompare(b.name);
+    });
+
+    // Re-assign ranks based on sorted position
+    leagueList.forEach((team, idx) => {
+      team.rank = idx + 1;
+    });
+
+    updatedData[adminEditLeague] = leagueList;
     setLeagueTeamsData(updatedData);
     localStorage.setItem(STORAGE_KEY_LEAGUE_DATA, JSON.stringify(updatedData));
-    alert(`Successfully recorded fixture results for ${adminEditTeamName} vs ${adminEditAwayTeamName} in ${adminEditLeague} (Max 2 fixtures per season enforced)!`);
+    alert(`Successfully recorded fixture results for ${adminEditTeamName} ${homeGoals}-${awayGoals} ${adminEditAwayTeamName} in ${adminEditLeague}. Standings recalculated!`);
   };
 
   const handleAppendMatch = (e) => {
@@ -583,10 +667,10 @@ function App() {
                     <button onClick={() => setIsAdminLoggedIn(false)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Logout</button>
                   </div>
 
-                  {/* ADMIN TEAM & FIXTURE EDITOR SECTION (DROPDOWNS + 0-9 GOALS + 0-30 CORNERS) */}
+                  {/* ADMIN TEAM & FIXTURE EDITOR SECTION (DROPDOWNS + 0-9 GOALS + 0-30 CORNERS WITH FULL STANDINGS CALCULATION) */}
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
                     <h4 style={{ color: '#1e293b', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>
-                      <i className="fa-solid fa-pen-to-square"></i> Record League Fixture Results (2 Games Max / Season)
+                      <i className="fa-solid fa-pen-to-square"></i> Record League Fixture Results & Recalculate Standings
                     </h4>
                     <form onSubmit={handleAdminSaveTeamDetails}>
                       <div style={{ marginBottom: '10px' }}>
@@ -652,7 +736,7 @@ function App() {
                       </div>
 
                       <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
-                        Save Fixture Record
+                        Save Fixture Record & Update Table
                       </button>
                     </form>
                   </div>
@@ -1146,4 +1230,4 @@ function App() {
   );
 }
 
-export default App;
+export default App[span_0](start_span)[span_0](end_span);
