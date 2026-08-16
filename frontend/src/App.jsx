@@ -5,72 +5,73 @@ const STORAGE_KEY_ROLLOVERS = 'mxrollover_local_rollovers';
 const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
 const STORAGE_KEY_TEAM_ANALYSIS = 'mxrollover_team_analysis_logs';
+const STORAGE_KEY_LEAGUE_DATA = 'mxrollover_custom_league_teams_data';
 
-// Comprehensive League & Team Database based on user specs
-const LEAGUE_TEAMS_DATA = {
+// Initial Comprehensive League & Team Database based on user specs
+const INITIAL_LEAGUE_TEAMS = {
   "La Liga": [
-    { rank: 1, name: "Alavés", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.2, goalsConcededAvg: 1.1 },
-    { rank: 2, name: "Sevilla", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0 },
-    { rank: 3, name: "Deportivo", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2 },
-    { rank: 4, name: "Racing Santander", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.3 },
-    { rank: 5, name: "Real Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.5, goalsScoredAvg: 2.4, goalsConcededAvg: 0.7 },
-    { rank: 6, name: "Celta", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
-    { rank: 7, name: "Barcelona", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.8, goalsScoredAvg: 2.6, goalsConcededAvg: 0.8 },
-    { rank: 8, name: "Málaga", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2 },
-    { rank: 9, name: "Real Sociedad", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.5, goalsConcededAvg: 1.1 },
-    { rank: 10, name: "Osasuna", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
-    { rank: 11, name: "Villarreal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.4, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
-    { rank: 12, name: "Atlético Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.7, goalsConcededAvg: 0.8 },
-    { rank: 13, name: "Levante", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.4 },
-    { rank: 14, name: "Elche", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 0.9, goalsConcededAvg: 1.5 },
-    { rank: 15, name: "Espanyol", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
-    { rank: 16, name: "Valencia", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
-    { rank: 17, name: "Betis", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.4, goalsConcededAvg: 1.2 },
-    { rank: 18, name: "Athletic", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.5, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0 },
-    { rank: 19, name: "Rayo Vallecano", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
-    { rank: 20, name: "Getafe", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 3.9, goalsScoredAvg: 0.8, goalsConcededAvg: 1.2 }
+    { rank: 1, name: "Alavés", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.2, goalsConcededAvg: 1.1, recentForm: ["W", "D", "L", "W", "W"] },
+    { rank: 2, name: "Sevilla", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0, recentForm: ["W", "W", "D", "L", "W"] },
+    { rank: 3, name: "Deportivo", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2, recentForm: ["L", "D", "W", "L", "D"] },
+    { rank: 4, name: "Racing Santander", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.3, recentForm: ["D", "W", "L", "W", "L"] },
+    { rank: 5, name: "Real Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.5, goalsScoredAvg: 2.4, goalsConcededAvg: 0.7, recentForm: ["W", "W", "W", "D", "W"] },
+    { rank: 6, name: "Celta", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3, recentForm: ["D", "L", "W", "W", "L"] },
+    { rank: 7, name: "Barcelona", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.8, goalsScoredAvg: 2.6, goalsConcededAvg: 0.8, recentForm: ["W", "W", "D", "W", "W"] },
+    { rank: 8, name: "Málaga", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.0, goalsConcededAvg: 1.2, recentForm: ["L", "L", "D", "W", "L"] },
+    { rank: 9, name: "Real Sociedad", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.5, goalsConcededAvg: 1.1, recentForm: ["W", "D", "W", "L", "W"] },
+    { rank: 10, name: "Osasuna", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2, recentForm: ["D", "L", "D", "W", "L"] },
+    { rank: 11, name: "Villarreal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.4, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2, recentForm: ["W", "W", "L", "D", "W"] },
+    { rank: 12, name: "Atlético Madrid", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.7, goalsConcededAvg: 0.8, recentForm: ["W", "D", "W", "W", "L"] },
+    { rank: 13, name: "Levante", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.4, recentForm: ["L", "D", "L", "W", "D"] },
+    { rank: 14, name: "Elche", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 0.9, goalsConcededAvg: 1.5, recentForm: ["L", "L", "W", "D", "L"] },
+    { rank: 15, name: "Espanyol", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3, recentForm: ["D", "W", "L", "L", "W"] },
+    { rank: 16, name: "Valencia", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2, recentForm: ["W", "L", "D", "W", "D"] },
+    { rank: 17, name: "Betis", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.4, goalsConcededAvg: 1.2, recentForm: ["D", "W", "W", "L", "D"] },
+    { rank: 18, name: "Athletic", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.5, goalsScoredAvg: 1.4, goalsConcededAvg: 1.0, recentForm: ["W", "D", "W", "W", "L"] },
+    { rank: 19, name: "Rayo Vallecano", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4, recentForm: ["L", "W", "D", "L", "W"] },
+    { rank: 20, name: "Getafe", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 3.9, goalsScoredAvg: 0.8, goalsConcededAvg: 1.2, recentForm: ["D", "L", "L", "W", "D"] }
   ],
   "EPL": [
-    { rank: 1, name: "Bournemouth", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.4 },
-    { rank: 2, name: "Arsenal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.9, goalsScoredAvg: 2.2, goalsConcededAvg: 0.7 },
-    { rank: 3, name: "Aston Villa", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.8, goalsConcededAvg: 1.1 },
-    { rank: 4, name: "Brentford", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.5, goalsConcededAvg: 1.3 },
-    { rank: 5, name: "Brighton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.6, goalsConcededAvg: 1.3 },
-    { rank: 6, name: "Chelsea", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.0, goalsScoredAvg: 1.9, goalsConcededAvg: 1.1 },
-    { rank: 7, name: "Coventry", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
-    { rank: 8, name: "Palace", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
-    { rank: 9, name: "Everton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
-    { rank: 10, name: "Fulham", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
-    { rank: 11, name: "Hull", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
-    { rank: 12, name: "Ipswich Town", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.0, goalsScoredAvg: 1.0, goalsConcededAvg: 1.6 },
-    { rank: 13, name: "Leeds", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.4, goalsConcededAvg: 1.3 },
-    { rank: 14, name: "Liverpool", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.2, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9 },
-    { rank: 15, name: "Man City", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.5, goalsScoredAvg: 2.5, goalsConcededAvg: 0.8 },
-    { rank: 16, name: "Man United", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
-    { rank: 17, name: "Newcastle", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.7, goalsConcededAvg: 1.1 },
-    { rank: 18, name: "Nottm Forest", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4 },
-    { rank: 19, name: "Sunderland", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5 },
-    { rank: 20, name: "Spurs", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 1.8, goalsConcededAvg: 1.3 }
+    { rank: 1, name: "Bournemouth", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.9, goalsScoredAvg: 1.3, goalsConcededAvg: 1.4, recentForm: ["W", "D", "L", "W", "D"] },
+    { rank: 2, name: "Arsenal", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.9, goalsScoredAvg: 2.2, goalsConcededAvg: 0.7, recentForm: ["W", "W", "W", "D", "W"] },
+    { rank: 3, name: "Aston Villa", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.8, goalsConcededAvg: 1.1, recentForm: ["W", "L", "W", "W", "D"] },
+    { rank: 4, name: "Brentford", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.5, goalsConcededAvg: 1.3, recentForm: ["D", "W", "L", "W", "L"] },
+    { rank: 5, name: "Brighton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.6, goalsConcededAvg: 1.3, recentForm: ["W", "D", "W", "D", "W"] },
+    { rank: 6, name: "Chelsea", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.0, goalsScoredAvg: 1.9, goalsConcededAvg: 1.1, recentForm: ["W", "W", "L", "W", "D"] },
+    { rank: 7, name: "Coventry", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3, recentForm: ["L", "D", "W", "L", "W"] },
+    { rank: 8, name: "Palace", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2, recentForm: ["D", "W", "D", "L", "W"] },
+    { rank: 9, name: "Everton", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2, recentForm: ["L", "D", "W", "D", "L"] },
+    { rank: 10, name: "Fulham", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3, recentForm: ["W", "L", "D", "W", "D"] },
+    { rank: 11, name: "Hull", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4, recentForm: ["D", "L", "L", "W", "D"] },
+    { rank: 12, name: "Ipswich Town", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.0, goalsScoredAvg: 1.0, goalsConcededAvg: 1.6, recentForm: ["L", "L", "D", "L", "W"] },
+    { rank: 13, name: "Leeds", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.4, goalsConcededAvg: 1.3, recentForm: ["W", "D", "L", "W", "D"] },
+    { rank: 14, name: "Liverpool", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.2, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9, recentForm: ["W", "W", "W", "D", "W"] },
+    { rank: 15, name: "Man City", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.5, goalsScoredAvg: 2.5, goalsConcededAvg: 0.8, recentForm: ["W", "W", "W", "W", "D"] },
+    { rank: 16, name: "Man United", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2, recentForm: ["W", "L", "W", "D", "W"] },
+    { rank: 17, name: "Newcastle", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.8, goalsScoredAvg: 1.7, goalsConcededAvg: 1.1, recentForm: ["W", "D", "W", "W", "L"] },
+    { rank: 18, name: "Nottm Forest", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4, recentForm: ["L", "W", "D", "L", "D"] },
+    { rank: 19, name: "Sunderland", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.3, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5, recentForm: ["D", "L", "W", "L", "L"] },
+    { rank: 20, name: "Spurs", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 1.8, goalsConcededAvg: 1.3, recentForm: ["W", "W", "L", "D", "W"] }
   ],
   "Bundesliga": [
-    { rank: 1, name: "Köln", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
-    { rank: 2, name: "Leverkusen", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.4, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9 },
-    { rank: 3, name: "Bayern", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.1, goalsScoredAvg: 2.8, goalsConcededAvg: 0.8 },
-    { rank: 4, name: "Dortmund", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 2.1, goalsConcededAvg: 1.1 },
-    { rank: 5, name: "Mönchengladbach", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.4, goalsConcededAvg: 1.4 },
-    { rank: 6, name: "Eintracht Frankfurt", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2 },
-    { rank: 7, name: "Augsburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4 },
-    { rank: 8, name: "Mainz", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3 },
-    { rank: 9, name: "Hamburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3 },
-    { rank: 10, name: "RB Leipzig", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.9, goalsConcededAvg: 1.0 },
-    { rank: 11, name: "Freiburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2 },
-    { rank: 12, name: "Paderborn", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.6 },
-    { rank: 13, name: "Schalke", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4 },
-    { rank: 14, name: "SV Elversberg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5 },
-    { rank: 15, name: "Hoffenheim", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.5, goalsConcededAvg: 1.5 },
-    { rank: 16, name: "Union Berlin", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2 },
-    { rank: 17, name: "VfB Stuttgart", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.7, goalsConcededAvg: 1.3 },
-    { rank: 18, name: "Werder", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.5 }
+    { rank: 1, name: "Köln", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3, recentForm: ["D", "W", "L", "W", "D"] },
+    { rank: 2, name: "Leverkusen", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.4, goalsScoredAvg: 2.3, goalsConcededAvg: 0.9, recentForm: ["W", "W", "W", "D", "W"] },
+    { rank: 3, name: "Bayern", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 7.1, goalsScoredAvg: 2.8, goalsConcededAvg: 0.8, recentForm: ["W", "W", "W", "W", "W"] },
+    { rank: 4, name: "Dortmund", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 6.2, goalsScoredAvg: 2.1, goalsConcededAvg: 1.1, recentForm: ["W", "L", "W", "W", "D"] },
+    { rank: 5, name: "Mönchengladbach", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.0, goalsScoredAvg: 1.4, goalsConcededAvg: 1.4, recentForm: ["D", "W", "D", "L", "W"] },
+    { rank: 6, name: "Eintracht Frankfurt", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.3, goalsScoredAvg: 1.6, goalsConcededAvg: 1.2, recentForm: ["W", "D", "W", "W", "L"] },
+    { rank: 7, name: "Augsburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.4, recentForm: ["L", "D", "W", "L", "D"] },
+    { rank: 8, name: "Mainz", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.7, goalsScoredAvg: 1.2, goalsConcededAvg: 1.3, recentForm: ["D", "W", "L", "D", "W"] },
+    { rank: 9, name: "Hamburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.8, goalsScoredAvg: 1.3, goalsConcededAvg: 1.3, recentForm: ["W", "L", "D", "W", "L"] },
+    { rank: 10, name: "RB Leipzig", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.9, goalsScoredAvg: 1.9, goalsConcededAvg: 1.0, recentForm: ["W", "W", "D", "L", "W"] },
+    { rank: 11, name: "Freiburg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.1, goalsScoredAvg: 1.3, goalsConcededAvg: 1.2, recentForm: ["D", "W", "L", "W", "D"] },
+    { rank: 12, name: "Paderborn", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.2, goalsScoredAvg: 1.1, goalsConcededAvg: 1.6, recentForm: ["L", "L", "D", "W", "L"] },
+    { rank: 13, name: "Schalke", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.5, goalsScoredAvg: 1.1, goalsConcededAvg: 1.4, recentForm: ["D", "W", "L", "L", "D"] },
+    { rank: 14, name: "SV Elversberg", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.1, goalsScoredAvg: 1.0, goalsConcededAvg: 1.5, recentForm: ["L", "D", "L", "W", "L"] },
+    { rank: 15, name: "Hoffenheim", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.2, goalsScoredAvg: 1.5, goalsConcededAvg: 1.5, recentForm: ["W", "L", "D", "W", "D"] },
+    { rank: 16, name: "Union Berlin", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.4, goalsScoredAvg: 1.1, goalsConcededAvg: 1.2, recentForm: ["D", "W", "D", "L", "W"] },
+    { rank: 17, name: "VfB Stuttgart", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 5.6, goalsScoredAvg: 1.7, goalsConcededAvg: 1.3, recentForm: ["W", "W", "L", "D", "W"] },
+    { rank: 18, name: "Werder", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, cornersAvg: 4.6, goalsScoredAvg: 1.2, goalsConcededAvg: 1.5, recentForm: ["L", "D", "W", "L", "D"] }
   ]
 };
 
@@ -133,6 +134,20 @@ function App() {
   
   // Team Detail Modal State
   const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+
+  // League & Team Database State (Admin editable)
+  const [leagueTeamsData, setLeagueTeamsData] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_LEAGUE_DATA);
+    return saved ? JSON.parse(saved) : INITIAL_LEAGUE_TEAMS;
+  });
+
+  // Admin Team Editor Form States
+  const [adminEditLeague, setAdminEditLeague] = useState('La Liga');
+  const [adminEditTeamName, setAdminEditTeamName] = useState('Barcelona');
+  const [adminEditCorners, setAdminEditCorners] = useState('6.8');
+  const [adminEditGoalsScored, setAdminEditGoalsScored] = useState('2.6');
+  const [adminEditGoalsConceded, setAdminEditGoalsConceded] = useState('0.8');
+  const [adminEditForm, setAdminEditForm] = useState('W,W,D,W,W');
 
   // Load database entries on mount from Local Storage
   useEffect(() => {
@@ -267,6 +282,47 @@ function App() {
     }
   };
 
+  // Handle Admin Saving Team Details (Corners, Results, Form, H2H metrics)
+  const handleAdminSaveTeamDetails = (e) => {
+    e.preventDefault();
+    if (!isAdminLoggedIn) {
+      alert("Admin authorization required!");
+      return;
+    }
+
+    const updatedData = { ...leagueTeamsData };
+    const leagueList = updatedData[adminEditLeague];
+    if (!leagueList) return;
+
+    const teamIndex = leagueList.findIndex(t => t.name.toLowerCase() === adminEditTeamName.toLowerCase());
+    const formArray = adminEditForm.split(',').map(s => s.trim().toUpperCase());
+
+    if (teamIndex !== -1) {
+      leagueList[teamIndex] = {
+        ...leagueList[teamIndex],
+        cornersAvg: parseFloat(adminEditCorners) || leagueList[teamIndex].cornersAvg,
+        goalsScoredAvg: parseFloat(adminEditGoalsScored) || leagueList[teamIndex].goalsScoredAvg,
+        goalsConcededAvg: parseFloat(adminEditGoalsConceded) || leagueList[teamIndex].goalsConcededAvg,
+        recentForm: formArray.length > 0 ? formArray : leagueList[teamIndex].recentForm
+      };
+    } else {
+      // Add new team if not found
+      leagueList.push({
+        rank: leagueList.length + 1,
+        name: adminEditTeamName,
+        mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0,
+        cornersAvg: parseFloat(adminEditCorners) || 5.0,
+        goalsScoredAvg: parseFloat(adminEditGoalsScored) || 1.2,
+        goalsConcededAvg: parseFloat(adminEditGoalsConceded) || 1.1,
+        recentForm: formArray
+      });
+    }
+
+    setLeagueTeamsData(updatedData);
+    localStorage.setItem(STORAGE_KEY_LEAGUE_DATA, JSON.stringify(updatedData));
+    alert(`Successfully updated statistics and details for ${adminEditTeamName} in ${adminEditLeague}!`);
+  };
+
   const handleAppendMatch = (e) => {
     e.preventDefault();
     if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
@@ -352,6 +408,7 @@ function App() {
       rollovers: localStorage.getItem(STORAGE_KEY_ROLLOVERS),
       steps: localStorage.getItem(STORAGE_KEY_STEPS),
       teamAnalysis: localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS),
+      leagueData: localStorage.getItem(STORAGE_KEY_LEAGUE_DATA),
       settings: { username, theme },
       exportDate: new Date().toISOString()
     };
@@ -359,7 +416,7 @@ function App() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Vozinha255_Backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `League_Backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -435,7 +492,7 @@ function App() {
             <div className="header-left">
               <h1>
                 <i className="fa-solid fa-layer-group"></i> 
-                Vozinha255 League
+                League
               </h1>
               <p style={{ marginTop: '5px', color: '#3b82f6', opacity: 1, fontSize: '0.9rem' }}>
                 ✦ East Africa eFootball Management & Standings ✧
@@ -561,7 +618,7 @@ function App() {
         {/* ADMIN MODAL PANEL */}
         {showAdminModal && (
           <div className="admin-modal-overlay" onClick={() => setShowAdminModal(false)}>
-            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '20px', borderRadius: '10px', maxWidth: '500px', width: '90%', margin: '50px auto', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '20px', borderRadius: '10px', maxWidth: '550px', width: '90%', margin: '30px auto', maxHeight: '85vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
                 <h3 style={{ margin: 0, color: '#1e293b' }}><i className="fa-solid fa-shield-halved"></i> Admin Control Center</h3>
                 <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}><i className="fa-solid fa-xmark"></i></button>
@@ -569,7 +626,7 @@ function App() {
 
               {!isAdminLoggedIn ? (
                 <form onSubmit={handleAdminLogin}>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage bet statuses. (Default: 1234)</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage team details & bet statuses. (Default: 1234)</p>
                   <div className="input-group" style={{ margin: '15px 0' }}>
                     <label>Admin Password</label>
                     <input type="password" placeholder="Enter password (e.g., 1234)" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
@@ -581,6 +638,53 @@ function App() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '10px', borderRadius: '6px', marginBottom: '15px' }}>
                     <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 'bold' }}><i className="fa-solid fa-circle-check"></i> Admin Authenticated</span>
                     <button onClick={() => setIsAdminLoggedIn(false)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Logout</button>
+                  </div>
+
+                  {/* ADMIN TEAM EDITOR SECTION */}
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '15px' }}>
+                    <h4 style={{ color: '#1e293b', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>
+                      <i className="fa-solid fa-pen-to-square"></i> Add/Edit Team Details (Corners, Results & H2H)
+                    </h4>
+                    <form onSubmit={handleAdminSaveTeamDetails}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>League</label>
+                          <select value={adminEditLeague} onChange={(e) => setAdminEditLeague(e.target.value)} style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                            <option value="La Liga">La Liga</option>
+                            <option value="EPL">EPL</option>
+                            <option value="Bundesliga">Bundesliga</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Team Name (e.g., Barcelona)</label>
+                          <input type="text" value={adminEditTeamName} onChange={(e) => setAdminEditTeamName(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Corners Avg</label>
+                          <input type="number" step="0.1" value={adminEditCorners} onChange={(e) => setAdminEditCorners(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Goals Scored</label>
+                          <input type="number" step="0.1" value={adminEditGoalsScored} onChange={(e) => setAdminEditGoalsScored(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Goals Conceded</label>
+                          <input type="number" step="0.1" value={adminEditGoalsConceded} onChange={(e) => setAdminEditGoalsConceded(e.target.value)} required style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Recent Results Form (Comma separated, e.g., W,W,D,L,W)</label>
+                        <input type="text" value={adminEditForm} onChange={(e) => setAdminEditForm(e.target.value)} placeholder="W,W,D,L,W" style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                      </div>
+
+                      <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
+                        Save Team Details
+                      </button>
+                    </form>
                   </div>
 
                   <div style={{ marginBottom: '15px' }}>
@@ -650,13 +754,48 @@ function App() {
           </div>
         )}
 
-        {/* TEAM DETAIL MODAL (IMAGE 4 STYLE POPUP) */}
+        {/* TEAM DETAIL MODAL WITH ROUND COLORS GRAPH (IMAGE 2 STYLE) */}
         {selectedTeamDetail && (
           <div className="admin-modal-overlay" onClick={() => setSelectedTeamDetail(null)}>
             <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', color: '#fff', padding: '20px', borderRadius: '12px', maxWidth: '450px', width: '90%', margin: '40px auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '15px' }}>
                 <h3 style={{ margin: 0, color: '#38bdf8' }}><i className="fa-solid fa-shield-cat"></i> {selectedTeamDetail.name} Club Analytics</h3>
                 <button onClick={() => setSelectedTeamDetail(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}><i className="fa-solid fa-xmark"></i></button>
+              </div>
+
+              {/* ROUND COLORS GRAPH & FORM DISTRIBUTION (IMAGE 2 STYLE) */}
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '15px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '10px', fontWeight: 'bold' }}>Recent Form & Match Outcomes Graph</div>
+                
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+                  {selectedTeamDetail.recentForm && selectedTeamDetail.recentForm.map((res, idx) => {
+                    let bgColor = '#10b981'; // Win Green
+                    if (res === 'D') bgColor = '#f59e0b'; // Draw Yellow/Orange
+                    else if (res === 'L') bgColor = '#ef4444'; // Loss Red
+
+                    return (
+                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ 
+                          width: '36px', 
+                          height: '36px', 
+                          borderRadius: '50%', 
+                          background: bgColor, 
+                          color: '#fff', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontWeight: 'bold', 
+                          fontSize: '0.85rem',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                        }}>
+                          {res}
+                        </div>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '4px' }}>R{idx+1}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#38bdf8' }}>🟢 Win (Green) | 🟡 Draw (Orange) | 🔴 Loss (Red)</div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
@@ -686,7 +825,7 @@ function App() {
               </div>
 
               <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
-                <strong style={{ color: '#f59e0b' }}>Vozinha255 League Insights:</strong> This team is fully registered for East African eFootball league pairings and tournament match points tracking.
+                <strong style={{ color: '#f59e0b' }}>League Insights:</strong> This team is fully registered for East African eFootball league pairings and tournament match points tracking[span_0](start_span)[span_0](end_span).
               </div>
             </div>
           </div>
@@ -699,7 +838,7 @@ function App() {
           {activeTab === 'dashboard' && (
             <section id="dashboard-view" className="page-view active" style={{ display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ color: '#1e293b' }}>Vozinha255 League Hub</h2>
+                <h2 style={{ color: '#1e293b' }}>League Hub</h2>
               </div>
 
               {/* ACCORDION 1: CREATE BETSLIP */}
@@ -781,7 +920,7 @@ function App() {
             </section>
           )}
 
-          {/* TAB 2: LEAGUE TABLES & H2H VIEW (REQUESTED UPDATE) */}
+          {/* TAB 2: LEAGUE TABLES & H2H VIEW */}
           {activeTab === 'tables' && (
             <section id="tables-view" className="page-view active" style={{ display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
@@ -834,7 +973,7 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {LEAGUE_TEAMS_DATA[selectedLeague].map((team) => (
+                        {leagueTeamsData[selectedLeague].map((team) => (
                           <tr 
                             key={team.name}
                             onClick={() => setSelectedTeamDetail(team)}
@@ -875,7 +1014,7 @@ function App() {
                         onChange={(e) => setH2hTeamA(e.target.value)}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
                       >
-                        {LEAGUE_TEAMS_DATA[selectedLeague].map(t => (
+                        {leagueTeamsData[selectedLeague].map(t => (
                           <option key={t.name} value={t.name}>{t.name}</option>
                         ))}
                       </select>
@@ -887,7 +1026,7 @@ function App() {
                         onChange={(e) => setH2hTeamB(e.target.value)}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
                       >
-                        {LEAGUE_TEAMS_DATA[selectedLeague].map(t => (
+                        {leagueTeamsData[selectedLeague].map(t => (
                           <option key={t.name} value={t.name}>{t.name}</option>
                         ))}
                       </select>
@@ -895,8 +1034,8 @@ function App() {
                   </div>
 
                   {(() => {
-                    const teamAObj = LEAGUE_TEAMS_DATA[selectedLeague].find(t => t.name === h2hTeamA) || LEAGUE_TEAMS_DATA[selectedLeague][0];
-                    const teamBObj = LEAGUE_TEAMS_DATA[selectedLeague].find(t => t.name === h2hTeamB) || LEAGUE_TEAMS_DATA[selectedLeague][1];
+                    const teamAObj = leagueTeamsData[selectedLeague].find(t => t.name === h2hTeamA) || leagueTeamsData[selectedLeague][0];
+                    const teamBObj = leagueTeamsData[selectedLeague].find(t => t.name === h2hTeamB) || leagueTeamsData[selectedLeague][1];
 
                     return (
                       <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
