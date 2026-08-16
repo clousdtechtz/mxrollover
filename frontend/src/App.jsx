@@ -231,6 +231,7 @@ function App() {
     const currentOddsValue = parseFloat(matchOdd);
     const textSelection = `${homeTeam} vs ${awayTeam} (${prediction} @${currentOddsValue})`;
     
+    // Automatically accept/stage the match when clicking '+' without blocking validation checks
     setStagedMatches([...stagedMatches, textSelection]);
     setAccumulatedOdds(prev => prev * currentOddsValue);
 
@@ -241,6 +242,7 @@ function App() {
 
   const handleGenerateActiveSlip = (e) => {
     e.preventDefault();
+    // Restriction validation check now happens only when trying to accept/generate the bet slip
     if (stagedMatches.length === 0) {
       alert("Please add at least one match to your coupon using the '+' button first.");
       return;
@@ -410,7 +412,7 @@ function App() {
                               <option value="default">Default Orange</option>
                               <option value="dark">Dark Theme</option>
                               <option value="blue">Blue Sky</option>
-                              <option value="purple">Royal Purple</option>
+                              <option value="royal">Royal Purple</option>
                               <option value="pink">Vibrant Pink</option>
                               <option value="gray">Slate Gray</option>
                             </select>
@@ -454,14 +456,6 @@ function App() {
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ color: '#1e293b' }}>Dashboard Management</h2>
-                <button 
-                  className="settle-action-btn" 
-                  style={{ backgroundColor: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  onClick={handleTriggerApiSettlement}
-                  disabled={apiChecking}
-                >
-                  <i className="fa-solid fa-arrows-rotate"></i> {apiChecking ? "Syncing Scores..." : "Settle Bets via API"}
-                </button>
               </div>
 
               {/* ACCORDION DROPDOWN 1: CREATE BETSLIP */}
