@@ -491,11 +491,10 @@ function App() {
                     </div>
 
                     <div className="form-row-base" style={{ marginTop: '5px' }}>
-                      <div className="input-group">
-                        <label>RapidAPI Match ID (Automation Check)</label>
-                        <input type="text" placeholder="e.g. 11938541 (Leave blank if manual)" value={matchIdInput} onChange={(e) => setMatchIdInput(e.target.value)} />
+                      <div className="input-group" style={{ display: 'none' }}>
+                        <input type="text" value={matchIdInput} onChange={(e) => setMatchIdInput(e.target.value)} />
                       </div>
-                      <div className="input-group">
+                      <div className="input-group" style={{ width: '100%' }}>
                         <label>Prediction Selection Rule</label>
                         <select value={prediction} onChange={(e) => setPrediction(e.target.value)} style={{ padding: '8px', borderRadius: '6px' }}>
                           <option value="Over 1.5">Over 1.5 Goals</option>
@@ -514,7 +513,7 @@ function App() {
                     </div>
 
                     <div className="added-teams-summary">
-                      {stagedMatches.length === 0 ? "No matches staging inside this coupon yet. Append fields below." : stagedMatches.join(' | ')}
+                      {stagedMatches.length > 0 ? stagedMatches.join(' | ') : null}
                     </div>
 
                     <div className="accumulator-input-row">
