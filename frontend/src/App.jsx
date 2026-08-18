@@ -73,6 +73,10 @@ function App() {
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [modalImageTitle, setModalImageTitle] = useState('');
 
+  // Backup download protection states (moved to Settings)
+  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
+  const [backupPasswordInput, setBackupPasswordInput] = useState('');
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -184,6 +188,18 @@ function App() {
     alert("Bet screenshot successfully imported into history!");
   };
 
+  // Delete screenshot by id (admin only)
+  const handleDeleteScreenshot = (id) => {
+    if (!isAdminLoggedIn) {
+      alert("Admin login required to delete images.");
+      return;
+    }
+    if (!window.confirm("Delete this screenshot permanently?")) return;
+    const updated = betScreenshots.filter(s => s.id !== id);
+    setBetScreenshots(updated);
+    localStorage.setItem(STORAGE_KEY_BET_SCREENSHOTS, JSON.stringify(updated));
+  };
+
   const handleAppendMatch = (e) => {
     e.preventDefault();
     if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
@@ -284,6 +300,19 @@ function App() {
     downloadAnchor.remove();
   };
 
+  const handleConfirmBackupDownload = (e) => {
+    e.preventDefault();
+    const storedPass = localStorage.getItem(STORAGE_KEY_ADMIN_PASS) || '1234';
+    if (backupPasswordInput === storedPass) {
+      setShowBackupPrompt(false);
+      setBackupPasswordInput('');
+      // proceed to download
+      handleDownloadBackupZip();
+    } else {
+      alert("Incorrect admin password. Backup download cancelled.");
+    }
+  };
+
   const handleToggleBetStatus = (betId, currentStatus) => {
     if (!isAdminLoggedIn) {
       alert("Access Denied! Admin login required.");
@@ -338,7 +367,6 @@ function App() {
   // Save notepad explicitly (green save button)
   const handleSaveNotepad = () => {
     localStorage.setItem(STORAGE_KEY_NOTEPAD, notepadContent);
-    // small toast-like feedback (simple)
     alert("Notepad saved to local storage.");
   };
 
@@ -349,7 +377,6 @@ function App() {
     setShowImageModal(true);
   };
 
-  // Remove team editor & analytics from Admin: clean modal content (keeps screenshot import & password functions)
   return (
     <div
       className={`theme-container theme-${theme}`}
@@ -430,10 +457,6 @@ function App() {
                       <i className="fas fa-history"></i> My bets
                     </a>
 
-                    <a href="#backup" onClick={(e) => { e.preventDefault(); handleDownloadBackupZip(); setShowProfileDropdown(false); }} style={{ color: '#10b981', fontWeight: 'bold' }}>
-                      <i className="fa-solid fa-download"></i> Download Data Backup (.json)
-                    </a>
-
                     <a href="#admin" onClick={(e) => { e.preventDefault(); setShowAdminModal(true); setShowProfileDropdown(false); }} style={{ color: '#e74c3c', fontWeight: 'bold' }}>
                       <i className="fa-solid fa-lock"></i> Admin Panel
                     </a>
@@ -471,6 +494,22 @@ function App() {
                               <option value="pink">Vibrant Pink</option>
                               <option value="gray">Slate Gray</option>
                             </select>
+                          </div>
+
+                          {/* Download backup moved here and password protected */}
+                          <div style={{ marginTop: '10px' }}>
+                            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>Data Backup</label>
+                            {!showBackupPrompt ? (
+                              <button onClick={() => setShowBackupPrompt(true)} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>
+                                Download Data Backup (.json)
+                              </button>
+                            ) : (
+                              <form onSubmit={handleConfirmBackupDownload} style={{ display: 'flex', gap: '8px', marginTop: '8px', alignItems: 'center' }}>
+                                <input type="password" placeholder="Admin password" value={backupPasswordInput} onChange={(e) => setBackupPasswordInput(e.target.value)} required style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                <button type="submit" style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Confirm</button>
+                                <button type="button" onClick={() => { setShowBackupPrompt(false); setBackupPasswordInput(''); }} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+                              </form>
+                            )}
                           </div>
                         </div>
                       )}
@@ -513,7 +552,7 @@ function App() {
           </nav>
         </header>
 
-        {/* ADMIN MODAL PANEL - simplified: only login, screenshot import, change password, manage bets */}
+        {/* ADMIN MODAL PANEL - simplified: only login, screenshot import, change password, manage bets & images */}
         {showAdminModal && (
           <div className="admin-modal-overlay" onClick={() => setShowAdminModal(false)}>
             <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '16px', borderRadius: '8px', maxWidth: '600px', width: '94%', margin: '16px auto', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -573,6 +612,31 @@ function App() {
                         Import Screenshot
                       </button>
                     </form>
+                  </div>
+
+                  {/* ADMIN: Manage Imported Images (with delete) */}
+                  <div style={{ background: '#fff', border: '1px solid #e6eef5', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+                    <h4 style={{ marginTop: 0, marginBottom: '8px', color: '#1e293b' }}><i className="fa-solid fa-images"></i> Manage Imported Images</h4>
+                    {betScreenshots.length === 0 ? (
+                      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No imported images yet.</p>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+                        {betScreenshots.map(item => (
+                          <div key={item.id} style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                            <div style={{ height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', cursor: 'pointer' }} onClick={() => openImageModal(item.image, item.title)}>
+                              <img src={item.image} alt={item.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <div style={{ padding: '8px' }}>
+                              <div style={{ fontWeight: '700', fontSize: '0.85rem', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.date}</div>
+                            </div>
+                            <button onClick={() => handleDeleteScreenshot(item.id)} style={{ position: 'absolute', right: '6px', top: '6px', background: 'rgba(239,68,68,0.95)', color: '#fff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                              Delete
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* CHANGE ADMIN PASSWORD - keep available */}
@@ -807,7 +871,7 @@ function App() {
                       <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Import (Admin)
                     </button>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px' }}>All screenshots you import via Admin will appear here. Click a thumbnail to view full size.</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px' }}>All screenshots you import via Admin will appear here. Click a thumbnail to view full size. Admins can delete images.</p>
 
                   {betScreenshots.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '28px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
@@ -817,12 +881,19 @@ function App() {
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                       {betScreenshots.map((item) => (
-                        <div key={item.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', overflow: 'hidden' }}>
+                        <div key={item.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', overflow: 'hidden', position: 'relative' }}>
                           <div style={{ height: '160px', overflow: 'hidden', borderRadius: '6px', marginBottom: '8px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => openImageModal(item.image, item.title)}>
                             <img src={item.image} alt={item.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                           </div>
                           <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
                           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Imported: {item.date}</div>
+
+                          {/* Admin delete overlay (visible when admin logged in) */}
+                          {isAdminLoggedIn && (
+                            <button onClick={() => handleDeleteScreenshot(item.id)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'rgba(239,68,68,0.95)', color: '#fff', border: 'none', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                              Delete
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
