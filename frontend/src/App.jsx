@@ -6,8 +6,8 @@ const STORAGE_KEY_STEPS = 'mxrollover_local_steps';
 const STORAGE_KEY_ADMIN_PASS = 'mxrollover_admin_password';
 const STORAGE_KEY_TEAM_ANALYSIS = 'mxrollover_team_analysis_logs';
 const STORAGE_KEY_LEAGUE_DATA = 'mxrollover_custom_league_teams_data';
-const STORAGE_KEY_BET_SCREENSHOTS = 'mxrollover_bet_screenshots_history';
-const STORAGE_KEY_NOTEPAD_NOTES = 'mxrollover_notepad_notes';
+const STORAGE_KEY_NOTEPAD = 'mxrollover_local_notepad_content';
+const STORAGE_KEY_BET_SCREENSHOTS = 'mxrollover_local_bet_screenshots';
 
 // Initial Comprehensive League & Team Database based on user specs
 const INITIAL_LEAGUE_TEAMS = {
@@ -118,24 +118,27 @@ function App() {
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Tables & H2H View Subcategory Dropdown state
-  const [tablesDropdownCategory, setTablesDropdownCategory] = useState('h2h');
-  const [selectedLeague, setSelectedLeague] = useState('La Liga');
+  // Updated Navigation Dropdown Category State replacing Table & H2H
+  const [selectedNavCategory, setSelectedNavCategory] = useState('.notepad');
   const [h2hTeamA, setH2hTeamA] = useState('Barcelona');
   const [h2hTeamB, setH2hTeamB] = useState('Real Madrid');
   
-  // Notepad state
-  const [notepadContent, setNotepadContent] = useState(() => localStorage.getItem(STORAGE_KEY_NOTEPAD_NOTES) || '');
+  const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
 
-  // Screenshot history state
+  // Notepad State
+  const [notepadContent, setNotepadContent] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY_NOTEPAD) || '';
+  });
+
+  // Bet Screenshots History State
   const [betScreenshots, setBetScreenshots] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY_BET_SCREENSHOTS);
     return saved ? JSON.parse(saved) : [];
   });
-  const [adminScreenshotTitle, setAdminScreenshotTitle] = useState('');
-  const [adminScreenshotDataUrl, setAdminScreenshotDataUrl] = useState('');
 
-  const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+  // Admin Screenshot Uploader State
+  const [adminScreenshotTitle, setAdminScreenshotTitle] = useState('');
+  const [adminScreenshotImage, setAdminScreenshotImage] = useState('');
 
   const [leagueTeamsData, setLeagueTeamsData] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY_LEAGUE_DATA);
@@ -232,6 +235,34 @@ function App() {
     } catch (err) {
       alert("Failed to delete record.");
     }
+  };
+
+  // Handle Admin Importing Screenshot History
+  const handleAdminImportScreenshot = (e) => {
+    e.preventDefault();
+    if (!isAdminLoggedIn) {
+      alert("Admin authorization required!");
+      return;
+    }
+    if (!adminScreenshotImage) {
+      alert("Please select a screenshot image file to import.");
+      return;
+    }
+
+    const newScreenshotItem = {
+      id: Date.now(),
+      title: adminScreenshotTitle || `Bet Screenshot ${betScreenshots.length + 1}`,
+      image: adminScreenshotImage,
+      date: new Date().toLocaleDateString()
+    };
+
+    const updatedScreenshots = [newScreenshotItem, ...betScreenshots];
+    setBetScreenshots(updatedScreenshots);
+    localStorage.setItem(STORAGE_KEY_BET_SCREENSHOTS, JSON.stringify(updatedScreenshots));
+
+    setAdminScreenshotTitle('');
+    setAdminScreenshotImage('');
+    alert("Bet screenshot successfully imported into history!");
   };
 
   // Handle Admin Saving Match Details with complete standard football table calculations (MP, W, D, L, GF, GA, GD, Pts, Form, Rankings)
@@ -361,34 +392,6 @@ function App() {
     alert(`Successfully recorded fixture results for ${adminEditTeamName} ${homeGoals}-${awayGoals} ${adminEditAwayTeamName} in ${adminEditLeague}. Standings recalculated!`);
   };
 
-  // Admin Upload Screenshot History Handler
-  const handleAdminUploadScreenshot = (e) => {
-    e.preventDefault();
-    if (!isAdminLoggedIn) {
-      alert("Admin authorization required!");
-      return;
-    }
-    if (!adminScreenshotTitle || !adminScreenshotDataUrl) {
-      alert("Please provide a title and select/upload an image file.");
-      return;
-    }
-
-    const newScreenshot = {
-      id: Date.now(),
-      title: adminScreenshotTitle,
-      imageUrl: adminScreenshotDataUrl,
-      date: new Date().toLocaleDateString()
-    };
-
-    const updatedScreenshots = [newScreenshot, ...betScreenshots];
-    setBetScreenshots(updatedScreenshots);
-    localStorage.setItem(STORAGE_KEY_BET_SCREENSHOTS, JSON.stringify(updatedScreenshots));
-
-    setAdminScreenshotTitle('');
-    setAdminScreenshotDataUrl('');
-    alert("Bet screenshot successfully imported to history!");
-  };
-
   const handleAppendMatch = (e) => {
     e.preventDefault();
     if (!homeTeam || !awayTeam || !prediction || isNaN(parseFloat(matchOdd))) {
@@ -474,8 +477,8 @@ function App() {
       steps: localStorage.getItem(STORAGE_KEY_STEPS),
       teamAnalysis: localStorage.getItem(STORAGE_KEY_TEAM_ANALYSIS),
       leagueData: localStorage.getItem(STORAGE_KEY_LEAGUE_DATA),
+      notepad: localStorage.getItem(STORAGE_KEY_NOTEPAD),
       screenshots: localStorage.getItem(STORAGE_KEY_BET_SCREENSHOTS),
-      notepad: localStorage.getItem(STORAGE_KEY_NOTEPAD_NOTES),
       settings: { username, theme },
       exportDate: new Date().toISOString()
     };
@@ -610,13 +613,13 @@ function App() {
                       <i className="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                     <a href="#tables" onClick={() => { setActiveTab('tables'); setShowProfileDropdown(false); }}>
-                      <i className="fa-solid fa-table"></i> Tables & H2H[span_0](start_span)[span_0](end_span)
+                      <i className="fa-solid fa-table"></i> Notepad & Bet Screenshots[span_0](start_span)[span_0](end_span)
                     </a>
                     <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}>
                       <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
                     </a>
                     <a href="#transactions" onClick={() => { setActiveTab('transactions'); setShowProfileDropdown(false); }}>
-                      <i className="fas fa-history"></i> My bets[span_1](start_span)[span_1](end_span)
+                      <i className="fas fa-history"></i> My bets
                     </a>
                     
                     <a href="#backup" onClick={(e) => { e.preventDefault(); handleDownloadBackupZip(); setShowProfileDropdown(false); }} style={{ color: '#10b981', fontWeight: 'bold' }}>
@@ -624,7 +627,7 @@ function App() {
                     </a>
 
                     <a href="#admin" onClick={(e) => { e.preventDefault(); setShowAdminModal(true); setShowProfileDropdown(false); }} style={{ color: '#e74c3c', fontWeight: 'bold' }}>
-                      <i className="fa-solid fa-lock"></i> Admin Panel[span_2](start_span)[span_2](end_span)
+                      <i className="fa-solid fa-lock"></i> Admin Panel
                     </a>
 
                     <div className="dropdown-divider"></div>
@@ -675,13 +678,13 @@ function App() {
               <i className="fas fa-home"></i> Home
             </button>
             <button className={`nav-btn ${activeTab === 'tables' ? 'active' : ''}`} onClick={() => setActiveTab('tables')}>
-              <i className="fa-solid fa-table"></i> Tables & H2H[span_3](start_span)[span_3](end_span)
+              <i className="fa-solid fa-clipboard-list"></i> Notepad & Screenshots[span_1](start_span)[span_1](end_span)
             </button>
             <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}>
               <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active Bets
             </button>
             <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
-              <i className="fa-solid fa-clock-rotate-left"></i> History[span_4](start_span)[span_4](end_span)
+              <i className="fa-solid fa-clock-rotate-left"></i> History
             </button>
           </nav>
         </header>
@@ -691,13 +694,13 @@ function App() {
           <div className="admin-modal-overlay" onClick={() => setShowAdminModal(false)}>
             <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', padding: '20px', borderRadius: '10px', maxWidth: '600px', width: '90%', margin: '20px auto', maxHeight: '90vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
-                <h3 style={{ margin: 0, color: '#1e293b' }}><i className="fa-solid fa-shield-halved"></i> Admin Control Center[span_5](start_span)[span_5](end_span)</h3>
+                <h3 style={{ margin: 0, color: '#1e293b' }}><i className="fa-solid fa-shield-halved"></i> Admin Control Center</h3>
                 <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}><i className="fa-solid fa-xmark"></i></button>
               </div>
 
               {!isAdminLoggedIn ? (
                 <form onSubmit={handleAdminLogin}>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage team fixtures & scores. (Default: 1234)</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage team fixtures & screenshot history[span_2](start_span)[span_2](end_span). (Default: 1234)</p>
                   <div className="input-group" style={{ margin: '15px 0' }}>
                     <label>Admin Password</label>
                     <input type="password" placeholder="Enter password (e.g., 1234)" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
@@ -711,49 +714,39 @@ function App() {
                     <button onClick={() => setIsAdminLoggedIn(false)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Logout</button>
                   </div>
 
-                  {/* ADMIN SCREENSHOT HISTORY IMPORT SECTION */}
+                  {/* ADMIN IMPORT SCREENSHOT HISTORY SECTION */}
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
                     <h4 style={{ color: '#1e293b', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>
-                      <i className="fa-solid fa-file-arrow-up"></i> Import Bet Screenshot History[span_6](start_span)[span_6](end_span)
+                      <i className="fa-solid fa-file-arrow-up"></i> Import Bet Screenshot History[span_3](start_span)[span_3](end_span)
                     </h4>
-                    <form onSubmit={handleAdminUploadScreenshot}>
+                    <form onSubmit={handleAdminImportScreenshot}>
                       <div style={{ marginBottom: '10px' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Screenshot Title / Description</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. Winning Slip - 18 Aug" 
-                          value={adminScreenshotTitle} 
-                          onChange={(e) => setAdminScreenshotTitle(e.target.value)} 
-                          required 
-                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} 
-                        />
+                        <input type="text" placeholder="e.g., Winning Bet Slip #1" value={adminScreenshotTitle} onChange={(e) => setAdminScreenshotTitle(e.target.value)} style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                       </div>
+
                       <div style={{ marginBottom: '12px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Select Image File</label>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setAdminScreenshotDataUrl(reader.result);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }} 
-                          required 
-                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff' }} 
-                        />
+                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Select Screenshot Image File</label>
+                        <input type="file" accept="image/*" onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setAdminScreenshotImage(reader.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }} style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff' }} />
                       </div>
-                      {adminScreenshotDataUrl && (
-                        <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                          <img src={adminScreenshotDataUrl} alt="Preview" style={{ maxHeight: '80px', borderRadius: '4px' }} />
+
+                      {adminScreenshotImage && (
+                        <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                          <img src={adminScreenshotImage} alt="Preview" style={{ maxWidth: '100%', height: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #ccc' }} />
                         </div>
                       )}
+
                       <button type="submit" style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
-                        Upload & Save Screenshot to History[span_7](start_span)[span_7](end_span)
+                        Import Screenshot into History
                       </button>
                     </form>
                   </div>
@@ -761,7 +754,7 @@ function App() {
                   {/* ADMIN TEAM & FIXTURE EDITOR SECTION */}
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
                     <h4 style={{ color: '#1e293b', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>
-                      <i className="fa-solid fa-pen-to-square"></i> Record League Fixture Results & Recalculate Standings
+                      <i className="fa-solid fa-pen-to-square"></i> Record League Fixture Results
                     </h4>
                     <form onSubmit={handleAdminSaveTeamDetails}>
                       <div style={{ marginBottom: '10px' }}>
@@ -824,7 +817,7 @@ function App() {
                       </div>
 
                       <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
-                        Save Fixture Record & Update Table
+                        Save Fixture Record
                       </button>
                     </form>
                   </div>
@@ -1045,136 +1038,88 @@ function App() {
             </section>
           )}
 
-          {/* TAB 2: TABLES & H2H VIEW (UPDATED: REPLACED LEAGUE TABLES WITH DROPDOWN CATEGORY CONTAINING H2H AND .NOTEPAD) */}
+          {/* TAB 2: NOTEPAD & BET SCREENSHOTS HISTORY VIEW (Replaced Tables & Team Analytics with Dropdown Category)[span_4](start_span)[span_4](end_span) */}
           {activeTab === 'tables' && (
             <section id="tables-view" className="page-view active" style={{ display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <h2 style={{ color: '#1e293b', margin: 0 }}><i className="fa-solid fa-table"></i> Tables & H2H[span_8](start_span)[span_8](end_span)</h2>
+                <h2 style={{ color: '#1e293b', margin: 0 }}><i className="fa-solid fa-folder-open"></i> Notepad & Bet Screenshots[span_5](start_span)[span_5](end_span)</h2>
                 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {tablesDropdownCategory === 'h2h' && (
-                    <select 
-                      value={selectedLeague} 
-                      onChange={(e) => setSelectedLeague(e.target.value)}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#fff', color: '#1e293b' }}
-                    >
-                      <option value="La Liga">🇪🇸 La Liga</option>
-                      <option value="EPL">🇬🇧 Premier League (EPL)</option>
-                      <option value="Bundesliga">🇩🇪 Bundesliga</option>
-                    </select>
-                  )}
-
-                  {/* Dropdown category replacing league tables view per user spec */}
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <select 
-                    value={tablesDropdownCategory} 
-                    onChange={(e) => setTablesDropdownCategory(e.target.value)}
-                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#2563eb', color: '#fff' }}
+                    value={selectedNavCategory} 
+                    onChange={(e) => setSelectedNavCategory(e.target.value)}
+                    style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#2563eb', color: '#fff', fontSize: '0.9rem' }}
                   >
-                    <option value="h2h">H2H Comparison[span_9](start_span)[span_9](end_span)</option>
-                    <option value=".notepad">.notepad[span_10](start_span)[span_10](end_span)</option>
+                    <option value=".notepad">📁 .notepad[span_6](start_span)[span_6](end_span)</option>
+                    <option value="screenshots">🖼️ History of Screenshot of My Bets[span_7](start_span)[span_7](end_span)</option>
                   </select>
                 </div>
               </div>
 
-              {tablesDropdownCategory === 'h2h' && (
+              {selectedNavCategory === '.notepad' && (
                 <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                  <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '15px' }}>Head-to-Head (H2H) Team Comparison</h3>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Team A</label>
-                      <select 
-                        value={h2hTeamA} 
-                        onChange={(e) => setH2hTeamA(e.target.value)}
-                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
-                      >
-                        {leagueTeamsData[selectedLeague].map(t => (
-                          <option key={t.name} value={t.name}>{t.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Team B</label>
-                      <select 
-                        value={h2hTeamB} 
-                        onChange={(e) => setH2hTeamB(e.target.value)}
-                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
-                      >
-                        {leagueTeamsData[selectedLeague].map(t => (
-                          <option key={t.name} value={t.name}>{t.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-note-sticky" style={{ color: '#f59e0b', marginRight: '6px' }}></i> Personal Notepad [.notepad][span_8](start_span)[span_8](end_span)</h3>
+                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 'bold' }}>Auto-saved to Local Storage</span>
                   </div>
-
-                  {(() => {
-                    const teamAObj = leagueTeamsData[selectedLeague].find(t => t.name === h2hTeamA) || leagueTeamsData[selectedLeague][0];
-                    const teamBObj = leagueTeamsData[selectedLeague].find(t => t.name === h2hTeamB) || leagueTeamsData[selectedLeague][1];
-
-                    return (
-                      <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                          <div style={{ textAlign: 'center', flex: 1 }}>
-                            <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>{teamAObj.name}</strong>
-                          </div>
-                          <div style={{ fontWeight: 'bold', color: '#ef4444', padding: '0 10px' }}>VS</div>
-                          <div style={{ textAlign: 'center', flex: 1 }}>
-                            <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>{teamBObj.name}</strong>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem' }}>
-                          <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontWeight: 'bold', color: '#3b82f6', marginBottom: '4px' }}>{teamAObj.name} Metrics</div>
-                            <div>Corners Avg: {teamAObj.cornersAvg}</div>
-                            <div>Goals Scored: {teamAObj.goalsScoredAvg}</div>
-                          </div>
-                          <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontWeight: 'bold', color: '#3b82f6', marginBottom: '4px' }}>{teamBObj.name} Metrics</div>
-                            <div>Corners Avg: {teamBObj.cornersAvg}</div>
-                            <div>Goals Scored: {teamBObj.goalsScoredAvg}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {tablesDropdownCategory === '.notepad' && (
-                <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                  <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '10px' }}>
-                    <i className="fa-solid fa-note-sticky" style={{ color: '#f59e0b', marginRight: '6px' }}></i> .notepad[span_11](start_span)[span_11](end_span)
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '12px' }}>Jot down your match notes, analyses, or quick reminders. Saved automatically.</p>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '12px' }}>Jot down your betting strategies, match analyses, or quick reminders here.</p>
                   
                   <textarea 
                     value={notepadContent}
                     onChange={(e) => {
                       const val = e.target.value;
                       setNotepadContent(val);
-                      localStorage.setItem(STORAGE_KEY_NOTEPAD_NOTES, val);
+                      localStorage.setItem(STORAGE_KEY_NOTEPAD, val);
                     }}
-                    placeholder="Type your notes here..." 
+                    placeholder="Type your notes here... (e.g., Analyze Over 2.5 stats for La Liga teams, check team form)"
                     style={{ 
                       width: '100%', 
-                      minHeight: '250px', 
+                      height: '350px', 
                       padding: '12px', 
-                      borderRadius: '6px', 
+                      borderRadius: '8px', 
                       border: '1px solid #cbd5e1', 
                       fontFamily: 'monospace', 
-                      fontSize: '0.9rem',
+                      fontSize: '0.9rem', 
                       lineHeight: '1.5',
-                      backgroundColor: '#fefce8',
-                      color: '#1e293b',
-                      resize: 'vertical'
-                    }} 
+                      resize: 'vertical',
+                      background: '#f8fafc',
+                      color: '#1e293b'
+                    }}
                   />
-                  <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 'bold' }}>
-                      <i className="fa-solid fa-cloud"></i> Auto-saved to local storage
-                    </span>
+                </div>
+              )}
+
+              {selectedNavCategory === 'screenshots' && (
+                <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-images" style={{ color: '#3b82f6', marginRight: '6px' }}></i> History of Screenshot of My Bets[span_9](start_span)[span_9](end_span)</h3>
+                    <button 
+                      onClick={() => setShowAdminModal(true)} 
+                      style={{ background: '#2563eb', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                    >
+                      <i className="fa-solid fa-plus"></i> Import Screenshot in Admin[span_10](start_span)[span_10](end_span)
+                    </button>
                   </div>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '15px' }}>Review all imported bet slip screenshots stored in your history archive.</p>
+
+                  {betScreenshots.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                      <i className="fa-solid fa-image" style={{ fontSize: '2.5rem', color: '#94a3b8', marginBottom: '10px' }}></i>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>No bet screenshots imported yet[span_11](start_span)[span_11](end_span). Go to the <strong>Admin Panel</strong> to import screenshots[span_12](start_span)[span_12](end_span).</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
+                      {betScreenshots.map((item) => (
+                        <div key={item.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', overflow: 'hidden' }}>
+                          <div style={{ height: '180px', overflow: 'hidden', borderRadius: '6px', marginBottom: '8px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src={item.image} alt={item.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#1e293b', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Imported: {item.date}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -1271,45 +1216,13 @@ function App() {
             </section>
           )}
 
-          {/* TAB 4: My Bets History (UPDATED: INCLUDES HISTORY OF SCREENSHOTS OF BETS) */}
+          {/* TAB 4: My Bets History */}
           {activeTab === 'transactions' && (
             <section id="transactions-view" className="page-view active" style={{ display: 'block' }}>
-              <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History[span_12](start_span)[span_12](end_span)</h2>
-              
-              {/* SECTION 1: SCREENSHOTS HISTORY OF BETS */}
-              <div style={{ marginBottom: '25px' }}>
-                <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '12px' }}>
-                  <i className="fa-solid fa-images" style={{ color: '#2563eb', marginRight: '6px' }}></i> Screenshot History of My Bets[span_13](start_span)[span_13](end_span)
-                </h3>
-
-                {betScreenshots.length === 0 ? (
-                  <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                    No bet screenshots imported yet. Use the <strong style={{ color: '#e74c3c' }}>Admin Panel</strong> to upload and import screenshot history[span_14](start_span)[span_14](end_span).
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
-                    {betScreenshots.map((shot) => (
-                      <div key={shot.id} style={{ background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                        <div style={{ height: '160px', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <img src={shot.imageUrl} alt={shot.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        </div>
-                        <div style={{ padding: '10px' }}>
-                          <strong style={{ fontSize: '0.85rem', color: '#1e293b', display: 'block', marginBottom: '4px' }}>{shot.title}</strong>
-                          <span style={{ fontSize: '0.7rem', color: '#64748b' }}><i className="fa-regular fa-calendar"></i> {shot.date}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 2: CHALLENGE RUNS HISTORY */}
-              <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '12px' }}>
-                <i className="fa-solid fa-list-check" style={{ color: '#10b981', marginRight: '6px' }}></i> Challenge Runs Logs
-              </h3>
+              <h2 style={{ marginBottom: '15px', color: '#333' }}>Bets History</h2>
               <div id="history-bets-target-list">
                 {rolloverRuns.length === 0 ? (
-                  <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No historical challenge data records verified yet.</p>
+                  <p style={{ color: '#64748b', textAlign: 'center', padding: '20px', fontSize: '0.85rem' }}>No historical data records verified yet.</p>
                 ) : (
                   rolloverRuns.map(run => {
                     const settledSteps = run.steps ? run.steps.filter(s => s.status === 'win' || s.status === 'loss') : [];
@@ -1318,7 +1231,7 @@ function App() {
                     else if (settledSteps.length > 0 && settledSteps.every(s => s.status === 'win')) statusIcon = '✅';
 
                     return (
-                      <div className="history-dropdown-card" key={run.id} style={{ marginBottom: '10px' }}>
+                      <div className="history-dropdown-card" key={run.id}>
                         <div className="history-header-toggle">
                           <p className="history-title-paragraph">
                             <strong>Challenge Run:</strong> {run.title} (Settled: {settledSteps.length} Days)
