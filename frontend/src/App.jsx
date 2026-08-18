@@ -694,7 +694,7 @@ function App() {
                                   fontSize: '0.8rem'
                                 }}
                               >
-                                {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
+                                {step.status === 'win' ? '✔ won' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
                               </button>
                             </div>
                           ))}
@@ -871,7 +871,7 @@ function App() {
                       <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Import (Admin)
                     </button>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px' }}>All screenshots you import via Admin will appear here. Click a thumbnail to view full size. Admins can delete images.</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px' }}>All screenshots you import via Admin will appear here. Click a thumbnail to view full size. Admins can delete images (from Admin panel).</p>
 
                   {betScreenshots.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '28px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
@@ -887,13 +887,6 @@ function App() {
                           </div>
                           <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
                           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Imported: {item.date}</div>
-
-                          {/* Admin delete overlay (visible when admin logged in) */}
-                          {isAdminLoggedIn && (
-                            <button onClick={() => handleDeleteScreenshot(item.id)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'rgba(239,68,68,0.95)', color: '#fff', border: 'none', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                              Delete
-                            </button>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -977,7 +970,7 @@ function App() {
                                           fontSize: '0.8rem'
                                         }}
                                       >
-                                        {step.status === 'win' ? '✔ WIN' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
+                                        {step.status === 'win' ? '✔ won' : step.status === 'loss' ? '✘ LOSS' : 'PENDING'}
                                       </span>
                                     </td>
                                   </tr>
