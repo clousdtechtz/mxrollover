@@ -118,12 +118,11 @@ function App() {
   const [rolloverRuns, setRolloverRuns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Updated Navigation Dropdown Category State replacing Table & H2H
-  const [selectedNavCategory, setSelectedNavCategory] = useState('.notepad');
-  const [h2hTeamA, setH2hTeamA] = useState('Barcelona');
-  const [h2hTeamB, setH2hTeamB] = useState('Real Madrid');
+  // Updated Navigation Dropdown Category State replacing Table & H2H (Default is Rov2)
+  const [selectedNavCategory, setSelectedNavCategory] = useState('Rov2');
   
   const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null); // Lightbox state for full screen screenshots
 
   // Notepad State
   const [notepadContent, setNotepadContent] = useState(() => {
@@ -298,7 +297,6 @@ function App() {
     const homeTeamObj = leagueList[homeIndex];
     const awayTeamObj = leagueList[awayIndex];
 
-    // Determine match outcome for Home and Away
     let homeWinInc = 0, homeDrawInc = 0, homeLossInc = 0, homePtsInc = 0, homeFormRes = 'L';
     let awayWinInc = 0, awayDrawInc = 0, awayLossInc = 0, awayPtsInc = 0, awayFormRes = 'L';
 
@@ -313,7 +311,6 @@ function App() {
       awayDrawInc = 1; awayPtsInc = 1; awayFormRes = 'D';
     }
 
-    // Update Home Team stats
     const newHomeMp = homeTeamObj.mp + 1;
     const newHomeW = homeTeamObj.w + homeWinInc;
     const newHomeD = homeTeamObj.d + homeDrawInc;
@@ -343,7 +340,6 @@ function App() {
       recentForm: newHomeForm
     };
 
-    // Update Away Team stats
     const newAwayMp = awayTeamObj.mp + 1;
     const newAwayW = awayTeamObj.w + awayWinInc;
     const newAwayD = awayTeamObj.d + awayDrawInc;
@@ -373,7 +369,6 @@ function App() {
       recentForm: newAwayForm
     };
 
-    // Sort league table using standard football rules: Pts DESC -> Goal Difference (GD) DESC -> Goals For (GF) DESC -> Alphabetical Name
     leagueList.sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
       if (b.gd !== a.gd) return b.gd - a.gd;
@@ -381,7 +376,6 @@ function App() {
       return a.name.localeCompare(b.name);
     });
 
-    // Re-assign ranks based on sorted position
     leagueList.forEach((team, idx) => {
       team.rank = idx + 1;
     });
@@ -613,7 +607,7 @@ function App() {
                       <i className="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                     <a href="#tables" onClick={() => { setActiveTab('tables'); setShowProfileDropdown(false); }}>
-                      <i className="fa-solid fa-table"></i> Notepad & Bet Screenshots[span_0](start_span)[span_0](end_span)
+                      <i className="fa-solid fa-table"></i> Notepad & Bet Screenshots
                     </a>
                     <a href="#goal" onClick={() => { setActiveTab('goal'); setShowProfileDropdown(false); }}>
                       <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active bets
@@ -674,16 +668,16 @@ function App() {
           </div>
           
           <nav>
-            <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+            <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} style={{ padding: '6px 10px', fontSize: '0.85rem' }}>
               <i className="fas fa-home"></i> Home
             </button>
-            <button className={`nav-btn ${activeTab === 'tables' ? 'active' : ''}`} onClick={() => setActiveTab('tables')}>
-              <i className="fa-solid fa-clipboard-list"></i> Notepad & Screenshots[span_1](start_span)[span_1](end_span)
+            <button className={`nav-btn ${activeTab === 'tables' ? 'active' : ''}`} onClick={() => setActiveTab('tables')} style={{ padding: '6px 10px', fontSize: '0.85rem' }}>
+              <i className="fa-solid fa-clipboard-list"></i> Notepad & Screenshots[span_0](start_span)[span_0](end_span)
             </button>
-            <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')}>
+            <button className={`nav-btn ${activeTab === 'goal' ? 'active' : ''}`} onClick={() => setActiveTab('goal')} style={{ padding: '6px 10px', fontSize: '0.85rem' }}>
               <i className="fa-regular fa-circle-dot live-blue-dot"></i> Active Bets
             </button>
-            <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
+            <button className={`nav-btn ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')} style={{ padding: '6px 10px', fontSize: '0.85rem' }}>
               <i className="fa-solid fa-clock-rotate-left"></i> History
             </button>
           </nav>
@@ -700,7 +694,7 @@ function App() {
 
               {!isAdminLoggedIn ? (
                 <form onSubmit={handleAdminLogin}>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage team fixtures & screenshot history[span_2](start_span)[span_2](end_span). (Default: 1234)</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Please enter admin password to manage team fixtures & screenshot history[span_1](start_span)[span_1](end_span). (Default: 1234)</p>
                   <div className="input-group" style={{ margin: '15px 0' }}>
                     <label>Admin Password</label>
                     <input type="password" placeholder="Enter password (e.g., 1234)" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
@@ -714,10 +708,10 @@ function App() {
                     <button onClick={() => setIsAdminLoggedIn(false)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Logout</button>
                   </div>
 
-                  {/* ADMIN IMPORT SCREENSHOT HISTORY SECTION */}
+                  {/* ADMIN IMPORT SCREENSHOT HISTORY SECTION WITH GREEN SAVE BUTTON */}
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
                     <h4 style={{ color: '#1e293b', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>
-                      <i className="fa-solid fa-file-arrow-up"></i> Import Bet Screenshot History[span_3](start_span)[span_3](end_span)
+                      <i className="fa-solid fa-file-arrow-up"></i> Import Bet Screenshot History[span_2](start_span)[span_2](end_span)
                     </h4>
                     <form onSubmit={handleAdminImportScreenshot}>
                       <div style={{ marginBottom: '10px' }}>
@@ -745,8 +739,8 @@ function App() {
                         </div>
                       )}
 
-                      <button type="submit" style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
-                        Import Screenshot into History
+                      <button type="submit" style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', width: '100%', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
+                        <i className="fa-solid fa-floppy-disk" style={{ marginRight: '6px' }}></i> Save Screenshot to History
                       </button>
                     </form>
                   </div>
@@ -885,6 +879,18 @@ function App() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* LIGHTBOX MODAL FOR FULL SCREEN SCREENSHOT VIEW */}
+        {lightboxImage && (
+          <div className="admin-modal-overlay" onClick={() => setLightboxImage(null)} style={{ background: 'rgba(0,0,0,0.85)', zIndex: 9999 }}>
+            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', boxShadow: 'none', maxWidth: '95vw', maxHeight: '95vh', textAlign: 'center', position: 'relative' }}>
+              <button onClick={() => setLightboxImage(null)} style={{ position: 'absolute', top: '-40px', right: '0', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '35px', height: '35px', fontSize: '1.2rem', cursor: 'pointer' }}>
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+              <img src={lightboxImage} alt="Full Screen Screenshot" style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', border: '2px solid #fff' }} />
             </div>
           </div>
         )}
@@ -1038,28 +1044,28 @@ function App() {
             </section>
           )}
 
-          {/* TAB 2: NOTEPAD & BET SCREENSHOTS HISTORY VIEW (Replaced Tables & Team Analytics with Dropdown Category)[span_4](start_span)[span_4](end_span) */}
+          {/* TAB 2: NOTEPAD & BET SCREENSHOTS HISTORY VIEW (Replaced h2h/tables with Rov2 and compact dropdown) */}
           {activeTab === 'tables' && (
             <section id="tables-view" className="page-view active" style={{ display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <h2 style={{ color: '#1e293b', margin: 0 }}><i className="fa-solid fa-folder-open"></i> Notepad & Bet Screenshots[span_5](start_span)[span_5](end_span)</h2>
+                <h2 style={{ color: '#1e293b', margin: 0, fontSize: '1.2rem' }}><i className="fa-solid fa-folder-open"></i> Notepad & Bet Screenshots</h2>
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <select 
                     value={selectedNavCategory} 
                     onChange={(e) => setSelectedNavCategory(e.target.value)}
-                    style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#2563eb', color: '#fff', fontSize: '0.9rem' }}
+                    style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', background: '#2563eb', color: '#fff', fontSize: '0.8rem' }}
                   >
-                    <option value=".notepad">📁 .notepad[span_6](start_span)[span_6](end_span)</option>
-                    <option value="screenshots">🖼️ History of Screenshot of My Bets[span_7](start_span)[span_7](end_span)</option>
+                    <option value="Rov2">📁 Rov2</option>
+                    <option value="screenshots">🖼️ History of Screenshot of My Bets</option>
                   </select>
                 </div>
               </div>
 
-              {selectedNavCategory === '.notepad' && (
+              {selectedNavCategory === 'Rov2' && (
                 <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-note-sticky" style={{ color: '#f59e0b', marginRight: '6px' }}></i> Personal Notepad [.notepad][span_8](start_span)[span_8](end_span)</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-note-sticky" style={{ color: '#f59e0b', marginRight: '6px' }}></i> Personal Notepad [Rov2]</h3>
                     <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 'bold' }}>Auto-saved to Local Storage</span>
                   </div>
                   <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '12px' }}>Jot down your betting strategies, match analyses, or quick reminders here.</p>
@@ -1092,27 +1098,34 @@ function App() {
               {selectedNavCategory === 'screenshots' && (
                 <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-images" style={{ color: '#3b82f6', marginRight: '6px' }}></i> History of Screenshot of My Bets[span_9](start_span)[span_9](end_span)</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#1e293b', margin: 0 }}><i className="fa-solid fa-images" style={{ color: '#3b82f6', marginRight: '6px' }}></i> History of Screenshot of My Bets</h3>
                     <button 
                       onClick={() => setShowAdminModal(true)} 
                       style={{ background: '#2563eb', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
                     >
-                      <i className="fa-solid fa-plus"></i> Import Screenshot in Admin[span_10](start_span)[span_10](end_span)
+                      <i className="fa-solid fa-plus"></i> Import Screenshot in Admin
                     </button>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '15px' }}>Review all imported bet slip screenshots stored in your history archive.</p>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '15px' }}>Review all imported bet slip screenshots stored in your history archive. Click any screenshot to view full screen.</p>
 
                   {betScreenshots.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
                       <i className="fa-solid fa-image" style={{ fontSize: '2.5rem', color: '#94a3b8', marginBottom: '10px' }}></i>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>No bet screenshots imported yet[span_11](start_span)[span_11](end_span). Go to the <strong>Admin Panel</strong> to import screenshots[span_12](start_span)[span_12](end_span).</p>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>No bet screenshots imported yet. Go to the <strong>Admin Panel</strong> to import screenshots.</p>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
                       {betScreenshots.map((item) => (
                         <div key={item.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', overflow: 'hidden' }}>
-                          <div style={{ height: '180px', overflow: 'hidden', borderRadius: '6px', marginBottom: '8px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div 
+                            onClick={() => setLightboxImage(item.image)}
+                            style={{ height: '180px', overflow: 'hidden', borderRadius: '6px', marginBottom: '8px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                            title="Click to view full screen"
+                          >
                             <img src={item.image} alt={item.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '3px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                              <i className="fa-solid fa-expand"></i> Full Screen
+                            </div>
                           </div>
                           <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#1e293b', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
                           <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Imported: {item.date}</div>
